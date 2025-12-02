@@ -9,3 +9,36 @@ body,
   margin: 0;
   overflow: hidden;
 }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4b5563; /* gray-600 */
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280; /* gray-500 */
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@layer utilities {
+  .overflow-y-auto,
+  .overflow-x-auto,
+  .overflow-auto {
+    overflow: overlay !important;
+  }
+}

@@ -1,6 +1,14 @@
-# Gemini Ruru - OpenAPI Visual Editor
+# Ruru - OpenAPI Visual Editor
+
+![App Screenshot](assets/screenshot.png)
 
 A visual editor for OpenAPI specifications, built with Electron, React, and TypeScript.
+
+> 🚧 **Work In Progress**: This project is currently under active development. Features are subject to change.
+
+## Download
+
+[Download the latest release](https://github.com/luania/ruru/releases)
 
 ## Features
 

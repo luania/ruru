@@ -20,6 +20,11 @@ contextBridge.exposeInMainWorld("ipcRenderer", {
     const [channel, ...omit] = args;
     return ipcRenderer.invoke(channel, ...omit);
   },
+  openDirectory: () => ipcRenderer.invoke("open-directory"),
+  readDirectory: (path: string) => ipcRenderer.invoke("read-directory", path),
+  readFile: (path: string) => ipcRenderer.invoke("read-file", path),
+  writeFile: (path: string, content: string) =>
+    ipcRenderer.invoke("write-file", path, content),
 
   // You can expose other APTs you need here.
   // ...
