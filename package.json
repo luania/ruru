@@ -2,6 +2,11 @@
   "name": "ruru",
   "private": true,
   "version": "0.0.0",
+  "description": "A visual editor for OpenAPI specifications",
+  "author": {
+    "name": "luania",
+    "email": "wibnagry@gmail.com"
+  },
   "license": "MIT",
   "repository": {
     "type": "git",
