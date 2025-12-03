@@ -5,8 +5,14 @@ import { Button } from "../../components/ui/Button";
 
 export const Home = () => {
   const navigate = useNavigate();
-  const { setWorkingDirectory, recentPaths, addRecentPath, removeRecentPath } =
-    useStore();
+  const {
+    setWorkingDirectory,
+    setActiveFilePath,
+    setOpenapi,
+    recentPaths,
+    addRecentPath,
+    removeRecentPath,
+  } = useStore();
 
   const handleOpenProject = async () => {
     try {
@@ -15,6 +21,15 @@ export const Home = () => {
         const path = result.filePaths[0];
         addRecentPath(path);
         setWorkingDirectory(path);
+        setActiveFilePath(null);
+        setOpenapi({
+          openapi: "3.0.0",
+          info: {
+            title: "New API",
+            version: "1.0.0",
+          },
+          paths: {},
+        });
         navigate("/editor");
       }
     } catch (error) {
@@ -25,6 +40,15 @@ export const Home = () => {
   const handleOpenRecent = (path: string) => {
     addRecentPath(path);
     setWorkingDirectory(path);
+    setActiveFilePath(null);
+    setOpenapi({
+      openapi: "3.0.0",
+      info: {
+        title: "New API",
+        version: "1.0.0",
+      },
+      paths: {},
+    });
     navigate("/editor");
   };
 
