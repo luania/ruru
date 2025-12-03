@@ -21,6 +21,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           release-type: node
+          bump-minor-pre-major: true
 
   build-release:
     needs: release-please
