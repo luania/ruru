@@ -20,8 +20,8 @@ jobs:
         id: release
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          release-type: node
-          bump-minor-pre-major: true
+          manifest-file: .release-please-manifest.json
+          config-file: release-please-config.json
 
   build-release:
     needs: release-please
