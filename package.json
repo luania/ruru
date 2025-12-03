@@ -1,7 +1,7 @@
 {
   "name": "ruru",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "A visual editor for OpenAPI specifications",
   "author": {
     "name": "luania",
