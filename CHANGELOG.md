@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/luania/ruru/compare/v0.1.0...v0.2.0) (2025-12-04)
+
+
+### Features
+
+* add application icons and configure build targets ([2ffffe5](https://github.com/luania/ruru/commit/2ffffe550e038b0e1c8abc9f8f1288de0a7e0e0b))
+
 ## [0.1.0](https://github.com/luania/ruru/compare/v0.0.1...v0.1.0) (2025-12-03)
 
 
