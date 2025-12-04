@@ -53,6 +53,9 @@ app.on("activate", () => {
 });
 
 app.whenReady().then(() => {
+  if (process.platform === "darwin") {
+    app.dock.setIcon(path.join(VITE_PUBLIC, "icon.png"));
+  }
   createWindow();
 
   ipcMain.handle("open-directory", async (event) => {

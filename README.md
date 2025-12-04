@@ -1,3 +1,5 @@
+<img src="public/icon.png" width="128" height="128" alt="Ruru Icon" />
+
 # Ruru - OpenAPI Visual Editor
 
 ![App Screenshot](assets/screenshot.png)
