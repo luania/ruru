@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/luania/ruru/compare/v0.2.0...v0.2.1) (2025-12-04)
+
+
+### Bug Fixes
+
+* set dock icon in dev mode and update readme ([469b508](https://github.com/luania/ruru/commit/469b508fb992b5d05ddfda99dcf1a0f098b42e85))
+
 ## [0.2.0](https://github.com/luania/ruru/compare/v0.1.0...v0.2.0) (2025-12-04)
 
 
