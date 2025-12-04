@@ -7,6 +7,7 @@ files:
   - dist-electron
   - package.json
 mac:
+  icon: build/icon.icns
   target:
     - target: dmg
       arch:
@@ -17,9 +18,11 @@ mac:
         - x64
         - arm64
 win:
+  icon: build/icon.ico
   target:
     - nsis
 linux:
+  icon: build/icon.png
   target:
     - AppImage
     - deb
