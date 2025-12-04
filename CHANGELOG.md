@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/luania/ruru/compare/v0.2.0...v0.3.0) (2025-12-04)
+
+
+### Features
+
+* first version ([6fd85cd](https://github.com/luania/ruru/commit/6fd85cd3f73d16613bb6b8ed6327b6af8ff1d7f8))
+
 ## [0.2.0](https://github.com/luania/ruru/compare/v0.1.0...v0.2.0) (2025-12-04)
 
 
