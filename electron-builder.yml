@@ -8,8 +8,14 @@ files:
   - package.json
 mac:
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
 win:
   target:
     - nsis
