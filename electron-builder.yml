@@ -1,0 +1,30 @@
+appId: com.luania.ruru
+productName: Ruru
+directories:
+  output: release/${version}
+files:
+  - dist
+  - dist-electron
+  - package.json
+mac:
+  icon: build/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
+win:
+  icon: build/icon.ico
+  target:
+    - nsis
+linux:
+  icon: build/icon.png
+  target:
+    - AppImage
+    - deb
+publish:
+  provider: github
