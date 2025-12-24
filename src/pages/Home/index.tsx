@@ -14,27 +14,29 @@ export const Home = () => {
     removeRecentPath,
   } = useStore();
 
-  const handleOpenProject = async () => {
-    try {
-      const result = await window.ipcRenderer.openDirectory();
-      if (!result.canceled && result.filePaths.length > 0) {
-        const path = result.filePaths[0];
-        addRecentPath(path);
-        setWorkingDirectory(path);
-        setActiveFilePath(null);
-        setOpenapi({
-          openapi: "3.0.0",
-          info: {
-            title: "New API",
-            version: "1.0.0",
-          },
-          paths: {},
-        });
-        navigate("/editor");
-      }
-    } catch (error) {
-      console.error("Failed to open directory:", error);
-    }
+  const handleOpenProject = () => {
+    window.ipcRenderer
+      .openDirectory()
+      .then((result) => {
+        if (!result.canceled && result.filePaths.length > 0) {
+          const path = result.filePaths[0];
+          addRecentPath(path);
+          setWorkingDirectory(path);
+          setActiveFilePath(null);
+          setOpenapi({
+            openapi: "3.0.0",
+            info: {
+              title: "New API",
+              version: "1.0.0",
+            },
+            paths: {},
+          });
+          navigate("/editor");
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to open directory:", error);
+      });
   };
 
   const handleOpenRecent = (path: string) => {

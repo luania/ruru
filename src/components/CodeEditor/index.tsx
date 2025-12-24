@@ -13,7 +13,7 @@ export const CodeEditor = () => {
   const editorRef = useRef<any>(null);
 
   useEffect(() => {
-    const loadFile = async () => {
+    const loadFile = () => {
       if (!activeFilePath) {
         setContent("");
         return;
@@ -21,17 +21,20 @@ export const CodeEditor = () => {
 
       setIsLoading(true);
       console.log("Loading file:", activeFilePath);
-      try {
-        const fileContent = await window.ipcRenderer.readFile(activeFilePath);
-        console.log("File loaded successfully");
-        setContent(fileContent);
-        setIsDirty(false);
-      } catch (error) {
-        console.error("Failed to read file:", error);
-        setContent(`Error loading file: ${error}`);
-      } finally {
-        setIsLoading(false);
-      }
+      window.ipcRenderer
+        .readFile(activeFilePath)
+        .then((fileContent) => {
+          console.log("File loaded successfully");
+          setContent(fileContent);
+          setIsDirty(false);
+        })
+        .catch((error) => {
+          console.error("Failed to read file:", error);
+          setContent(`Error loading file: ${error}`);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     };
 
     loadFile();
@@ -46,17 +49,19 @@ export const CodeEditor = () => {
     });
   };
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!activeFilePath || !editorRef.current) return;
 
     const currentContent = editorRef.current.getValue();
-    try {
-      await window.ipcRenderer.writeFile(activeFilePath, currentContent);
-      setIsDirty(false);
-      // Optional: Show success toast
-    } catch (error) {
-      console.error("Failed to save file:", error);
-    }
+    window.ipcRenderer
+      .writeFile(activeFilePath, currentContent)
+      .then(() => {
+        setIsDirty(false);
+        // Optional: Show success toast
+      })
+      .catch((error) => {
+        console.error("Failed to save file:", error);
+      });
   };
 
   const handleChange = (value: string | undefined) => {

@@ -20,18 +20,21 @@ const FileTreeItem = ({ entry, level }: FileTreeItemProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const { setActiveFilePath, activeFilePath } = useStore();
 
-  const handleClick = async () => {
+  const handleClick = () => {
     if (entry.isDirectory) {
       if (!isOpen && children.length === 0) {
         setIsLoading(true);
-        try {
-          const result = await window.ipcRenderer.readDirectory(entry.path);
-          setChildren(result);
-        } catch (error) {
-          console.error("Failed to read directory:", error);
-        } finally {
-          setIsLoading(false);
-        }
+        window.ipcRenderer
+          .readDirectory(entry.path)
+          .then((result) => {
+            setChildren(result);
+          })
+          .catch((error) => {
+            console.error("Failed to read directory:", error);
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
       }
       setIsOpen(!isOpen);
     } else {
@@ -90,13 +93,15 @@ export const FileTree = ({ rootPath }: FileTreeProps) => {
   const [rootEntries, setRootEntries] = useState<FileEntry[]>([]);
 
   useEffect(() => {
-    const loadRoot = async () => {
-      try {
-        const result = await window.ipcRenderer.readDirectory(rootPath);
-        setRootEntries(result);
-      } catch (error) {
-        console.error("Failed to read root directory:", error);
-      }
+    const loadRoot = () => {
+      window.ipcRenderer
+        .readDirectory(rootPath)
+        .then((result) => {
+          setRootEntries(result);
+        })
+        .catch((error) => {
+          console.error("Failed to read root directory:", error);
+        });
     };
     loadRoot();
   }, [rootPath]);

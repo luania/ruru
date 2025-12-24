@@ -100,54 +100,60 @@ export const ReferenceSelector = ({
 
   // Load files when currentPath changes
   useEffect(() => {
-    const loadFiles = async () => {
+    const loadFiles = () => {
       if (!currentPath) return;
       setIsLoading(true);
-      try {
-        const result = await window.ipcRenderer.readDirectory(currentPath);
-        // Filter for directories and yaml/json files
-        const filtered = result.filter(
-          (f) =>
-            f.isDirectory ||
-            f.name.endsWith(".yaml") ||
-            f.name.endsWith(".yml") ||
-            f.name.endsWith(".json")
-        );
-        // Sort directories first
-        filtered.sort((a, b) => {
-          if (a.isDirectory === b.isDirectory)
-            return a.name.localeCompare(b.name);
-          return a.isDirectory ? -1 : 1;
+      window.ipcRenderer
+        .readDirectory(currentPath)
+        .then((result) => {
+          // Filter for directories and yaml/json files
+          const filtered = result.filter(
+            (f) =>
+              f.isDirectory ||
+              f.name.endsWith(".yaml") ||
+              f.name.endsWith(".yml") ||
+              f.name.endsWith(".json")
+          );
+          // Sort directories first
+          filtered.sort((a, b) => {
+            if (a.isDirectory === b.isDirectory)
+              return a.name.localeCompare(b.name);
+            return a.isDirectory ? -1 : 1;
+          });
+          setFiles(filtered);
+        })
+        .catch((e) => {
+          console.error("Failed to read directory", e);
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
-        setFiles(filtered);
-      } catch (e) {
-        console.error("Failed to read directory", e);
-      } finally {
-        setIsLoading(false);
-      }
     };
     loadFiles();
   }, [currentPath]);
 
   // Load external components when a file is selected
   useEffect(() => {
-    const loadExternalComponents = async () => {
+    const loadExternalComponents = () => {
       if (!selectedFile) return;
       setIsLoading(true);
-      try {
-        const content = await window.ipcRenderer.readFile(selectedFile);
-        const parsed = parseOpenAPI(content);
-        if (parsed && parsed.components && parsed.components[type]) {
-          setExternalComponents(Object.keys(parsed.components[type] || {}));
-        } else {
+      window.ipcRenderer
+        .readFile(selectedFile)
+        .then((content) => {
+          const parsed = parseOpenAPI(content);
+          if (parsed && parsed.components && parsed.components[type]) {
+            setExternalComponents(Object.keys(parsed.components[type] || {}));
+          } else {
+            setExternalComponents([]);
+          }
+        })
+        .catch((e) => {
+          console.error("Failed to parse external file", e);
           setExternalComponents([]);
-        }
-      } catch (e) {
-        console.error("Failed to parse external file", e);
-        setExternalComponents([]);
-      } finally {
-        setIsLoading(false);
-      }
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     };
     loadExternalComponents();
   }, [selectedFile, type]);

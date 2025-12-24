@@ -10,7 +10,7 @@ export const Editor = () => {
   const [checking, setChecking] = useState(false);
 
   useEffect(() => {
-    const checkFileType = async () => {
+    const checkFileType = () => {
       if (!activeFilePath) {
         setIsOpenAPIFile(false);
         return;
@@ -23,15 +23,18 @@ export const Editor = () => {
       }
 
       setChecking(true);
-      try {
-        const content = await window.ipcRenderer.readFile(activeFilePath);
-        setIsOpenAPIFile(isOpenAPI(content));
-      } catch (error) {
-        console.error("Failed to check file type", error);
-        setIsOpenAPIFile(false);
-      } finally {
-        setChecking(false);
-      }
+      window.ipcRenderer
+        .readFile(activeFilePath)
+        .then((content) => {
+          setIsOpenAPIFile(isOpenAPI(content));
+        })
+        .catch((error) => {
+          console.error("Failed to check file type", error);
+          setIsOpenAPIFile(false);
+        })
+        .finally(() => {
+          setChecking(false);
+        });
     };
 
     checkFileType();

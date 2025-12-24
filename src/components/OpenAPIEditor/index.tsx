@@ -125,31 +125,34 @@ export const OpenAPIEditor = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadData = () => {
       if (!activeFilePath) return;
       setIsLoading(true);
-      try {
-        const content = await window.ipcRenderer.readFile(activeFilePath);
-        setRawContent(content);
-        const parsed = parseOpenAPI(content) as OpenAPIObject;
-        setParsedData(parsed);
-        setOpenapi(parsed);
-      } catch (error) {
-        console.error("Failed to parse OpenAPI file:", error);
-      } finally {
-        setIsLoading(false);
-      }
+      window.ipcRenderer
+        .readFile(activeFilePath)
+        .then((content) => {
+          setRawContent(content);
+          const parsed = parseOpenAPI(content) as OpenAPIObject;
+          setParsedData(parsed);
+          setOpenapi(parsed);
+        })
+        .catch((error) => {
+          console.error("Failed to parse OpenAPI file:", error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     };
     if (view === "form") {
       loadData();
     }
   }, [activeFilePath, view, setOpenapi]);
 
-  const saveChanges = async (
+  const saveChanges = (
     updateFn: (doc: YAML.Document) => void,
     newData: OpenAPIObject
   ) => {
-    if (!activeFilePath) return;
+    if (!activeFilePath) return Promise.resolve();
 
     try {
       const doc = YAML.parseDocument(rawContent);
@@ -160,29 +163,36 @@ export const OpenAPIEditor = () => {
 
       const newYamlContent = doc.toString();
 
-      await window.ipcRenderer.writeFile(activeFilePath, newYamlContent);
-      setRawContent(newYamlContent);
-      setParsedData(newData);
-      setOpenapi(newData);
+      return window.ipcRenderer
+        .writeFile(activeFilePath, newYamlContent)
+        .then(() => {
+          setRawContent(newYamlContent);
+          setParsedData(newData);
+          setOpenapi(newData);
+        })
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
     } catch (error) {
       console.error("Failed to save OpenAPI file:", error);
+      return Promise.resolve();
     }
   };
 
-  const handleInfoChange = async (infoData: InfoObject) => {
+  const handleInfoChange = (infoData: InfoObject) => {
     if (!parsedData) return;
     const newData = { ...parsedData, info: infoData };
-    await saveChanges(
+    saveChanges(
       (doc) =>
         updateYamlDocument(doc, ["info"], parsedData.info || {}, infoData),
       newData
     );
   };
 
-  const handleServersChange = async (serversData: ServerObject[]) => {
+  const handleServersChange = (serversData: ServerObject[]) => {
     if (!parsedData) return;
     const newData = { ...parsedData, servers: serversData };
-    await saveChanges(
+    saveChanges(
       (doc) =>
         updateYamlDocument(
           doc,
@@ -194,12 +204,10 @@ export const OpenAPIEditor = () => {
     );
   };
 
-  const handleSecurityChange = async (
-    securityData: SecurityRequirementObject[]
-  ) => {
+  const handleSecurityChange = (securityData: SecurityRequirementObject[]) => {
     if (!parsedData) return;
     const newData = { ...parsedData, security: securityData };
-    await saveChanges(
+    saveChanges(
       (doc) =>
         updateYamlDocument(
           doc,
@@ -211,11 +219,11 @@ export const OpenAPIEditor = () => {
     );
   };
 
-  const handleComponentsChange = async (componentsData: ComponentsObject) => {
+  const handleComponentsChange = (componentsData: ComponentsObject) => {
     if (!parsedData) return;
     const newData = { ...parsedData, components: componentsData };
 
-    await saveChanges(
+    saveChanges(
       (doc) =>
         updateYamlDocument(
           doc,
@@ -227,17 +235,17 @@ export const OpenAPIEditor = () => {
     );
   };
 
-  const handleTagsChange = async (tagsData: TagObject[]) => {
+  const handleTagsChange = (tagsData: TagObject[]) => {
     if (!parsedData) return;
     const newData = { ...parsedData, tags: tagsData };
-    await saveChanges(
+    saveChanges(
       (doc) =>
         updateYamlDocument(doc, ["tags"], parsedData.tags || [], tagsData),
       newData
     );
   };
 
-  const handleAddPath = async (path: string, methods: string[]) => {
+  const handleAddPath = (path: string, methods: string[]) => {
     if (!parsedData) return;
 
     const newPathItem: PathItemObject = {};
@@ -258,12 +266,13 @@ export const OpenAPIEditor = () => {
     };
 
     const newData = { ...parsedData, paths: newPaths };
-    await saveChanges(
+    saveChanges(
       (doc) => updateYamlDocument(doc, ["paths", path], undefined, newPathItem),
       newData
-    );
-    setActiveSection("paths");
-    setSelectedPath(path);
+    ).then(() => {
+      setActiveSection("paths");
+      setSelectedPath(path);
+    });
   };
 
   if (isLoading) {
@@ -542,14 +551,14 @@ export const OpenAPIEditor = () => {
                       }
                       servers={parsedData.servers}
                       initialMethod={selectedMethod}
-                      onChange={async (newPathItem) => {
+                      onChange={(newPathItem) => {
                         if (!parsedData) return;
                         const newPaths = {
                           ...parsedData.paths,
                           [selectedPath]: newPathItem,
                         };
                         const newData = { ...parsedData, paths: newPaths };
-                        await saveChanges(
+                        saveChanges(
                           (doc) =>
                             updateYamlDocument(
                               doc,
