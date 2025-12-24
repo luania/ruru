@@ -5,14 +5,12 @@ import { Button } from "../../components/ui/Button";
 
 export const Home = () => {
   const navigate = useNavigate();
-  const {
-    setWorkingDirectory,
-    setActiveFilePath,
-    setOpenapi,
-    recentPaths,
-    addRecentPath,
-    removeRecentPath,
-  } = useStore();
+  const setWorkingDirectory = useStore((state) => state.setWorkingDirectory);
+  const setActiveFilePath = useStore((state) => state.setActiveFilePath);
+  const setOpenapi = useStore((state) => state.setOpenapi);
+  const recentPaths = useStore((state) => state.recentPaths);
+  const addRecentPath = useStore((state) => state.addRecentPath);
+  const removeRecentPath = useStore((state) => state.removeRecentPath);
 
   const handleOpenProject = () => {
     window.ipcRenderer

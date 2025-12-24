@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { cn, getMethodColor } from "../../../lib/utils";
 import { OperationEditor } from "./OperationEditor";
 import { Plus } from "lucide-react";
@@ -48,6 +48,13 @@ export const PathEditor = ({
   const [newlyAddedMethod, setNewlyAddedMethod] = useState<string | null>(null);
   const [prevInitialMethod, setPrevInitialMethod] = useState(initialMethod);
 
+  // Refs for stable callbacks
+  const dataRef = useRef(data);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
+
   if (initialMethod !== prevInitialMethod) {
     setPrevInitialMethod(initialMethod);
     if (initialMethod && data[initialMethod as keyof PathItemObject]) {
@@ -76,18 +83,19 @@ export const PathEditor = ({
     }
   }, [data, newlyAddedMethod]);
 
-  const handleOperationChange = (
-    method: string,
-    operation: OperationObject | undefined
-  ) => {
-    const newData = { ...data };
-    if (operation) {
-      newData[method as keyof PathItemObject] = operation;
-    } else {
-      delete newData[method as keyof PathItemObject];
-    }
-    onChange(newData);
-  };
+  const handleOperationChange = useCallback(
+    (method: string, operation: OperationObject | undefined) => {
+      const currentData = dataRef.current;
+      const newData = { ...currentData };
+      if (operation) {
+        newData[method as keyof PathItemObject] = operation;
+      } else {
+        delete newData[method as keyof PathItemObject];
+      }
+      onChange(newData);
+    },
+    [onChange]
+  );
 
   const handleAddMethod = (method: string) => {
     handleOperationChange(method, {});

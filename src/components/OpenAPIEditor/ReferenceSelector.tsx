@@ -6,7 +6,7 @@ import {
   Folder,
   Search,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { parseOpenAPI } from "../../lib/openapi";
 import { cn } from "../../lib/utils";
 import { useStore } from "../../store/useStore";
@@ -71,10 +71,22 @@ export const ReferenceSelector = ({
   type,
   trigger,
 }: ReferenceSelectorProps) => {
-  const { openapi, activeFilePath, workingDirectory } = useStore();
+  const localComponents = useStore((state) =>
+    Object.keys(state.openapi?.components?.[type] || {})
+  );
+
+  const activeFilePath = useStore((state) => state.activeFilePath);
+  const workingDirectory = useStore((state) => state.workingDirectory);
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<"local" | "external">("local");
-  const [currentPath, setCurrentPath] = useState<string | null>(null);
+  const getInitialPath = () => {
+    if (activeFilePath) {
+      return activeFilePath.substring(0, activeFilePath.lastIndexOf("/"));
+    }
+    return workingDirectory || null;
+  };
+
+  const [currentPath, setCurrentPath] = useState<string | null>(getInitialPath);
   const [files, setFiles] = useState<
     Array<{ name: string; isDirectory: boolean; path: string }>
   >([]);
@@ -83,20 +95,13 @@ export const ReferenceSelector = ({
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
 
-  // Initialize current path
-  useEffect(() => {
-    if (isOpen && !currentPath) {
-      if (activeFilePath) {
-        const dir = activeFilePath.substring(
-          0,
-          activeFilePath.lastIndexOf("/")
-        );
-        setCurrentPath(dir);
-      } else if (workingDirectory) {
-        setCurrentPath(workingDirectory);
-      }
+  // Reset path when popover opens
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (open && !currentPath) {
+      setCurrentPath(getInitialPath());
     }
-  }, [isOpen, activeFilePath, workingDirectory, currentPath]);
+  };
 
   // Load files when currentPath changes
   useEffect(() => {
@@ -158,10 +163,6 @@ export const ReferenceSelector = ({
     loadExternalComponents();
   }, [selectedFile, type]);
 
-  const localComponents = useMemo(() => {
-    return Object.keys(openapi?.components?.[type] || {});
-  }, [openapi, type]);
-
   const filteredLocalComponents = localComponents.filter((c) =>
     c.toLowerCase().includes(search.toLowerCase())
   );
@@ -193,13 +194,13 @@ export const ReferenceSelector = ({
     setIsOpen(false);
   };
 
-  // Clear search when switching modes
-  useEffect(() => {
+  const handleModeChange = (newMode: "local" | "external") => {
+    setMode(newMode);
     setSearch("");
-  }, [mode]);
+  };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         {trigger || (
           <Button
@@ -220,7 +221,7 @@ export const ReferenceSelector = ({
                 ? "text-white border-b-2 border-blue-500"
                 : "text-gray-400 hover:text-gray-300"
             )}
-            onClick={() => setMode("local")}
+            onClick={() => handleModeChange("local")}
           >
             Local
           </button>
@@ -231,7 +232,7 @@ export const ReferenceSelector = ({
                 ? "text-white border-b-2 border-blue-500"
                 : "text-gray-400 hover:text-gray-300"
             )}
-            onClick={() => setMode("external")}
+            onClick={() => handleModeChange("external")}
           >
             External File
           </button>

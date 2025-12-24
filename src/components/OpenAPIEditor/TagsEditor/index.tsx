@@ -36,7 +36,7 @@ export const TagsEditor = ({ initialData, onChange }: TagsEditorProps) => {
     defaultValues: {
       tags: initialData || [],
     },
-    mode: "onBlur",
+    mode: "onChange",
   });
 
   const { fields, append, remove } = useFieldArray({

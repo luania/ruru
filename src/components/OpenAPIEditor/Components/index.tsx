@@ -1,3 +1,4 @@
+import { useCallback, useRef, useEffect } from "react";
 import { SecuritySchemesEditor } from "./SecuritySchemesEditor";
 import { SchemasEditor } from "./SchemasEditor";
 import { ResponsesEditor } from "./ResponsesEditor";
@@ -31,11 +32,67 @@ export const ComponentsEditor = ({
   activeSection,
   onChange,
 }: ComponentsEditorProps) => {
-  const handleSecuritySchemesChange = (
-    data: ComponentsObject["securitySchemes"]
-  ) => {
-    onChange({ ...initialData, securitySchemes: data });
-  };
+  const initialDataRef = useRef(initialData);
+
+  useEffect(() => {
+    initialDataRef.current = initialData;
+  }, [initialData]);
+
+  const handleSecuritySchemesChange = useCallback(
+    (data: ComponentsObject["securitySchemes"]) => {
+      onChange({ ...initialDataRef.current, securitySchemes: data });
+    },
+    [onChange]
+  );
+
+  const handleSchemasChange = useCallback(
+    (data: ComponentsObject["schemas"]) => {
+      onChange({ ...initialDataRef.current, schemas: data });
+    },
+    [onChange]
+  );
+
+  const handleResponsesChange = useCallback(
+    (data: ComponentsObject["responses"]) => {
+      onChange({ ...initialDataRef.current, responses: data });
+    },
+    [onChange]
+  );
+
+  const handleParametersChange = useCallback(
+    (data: ComponentsObject["parameters"]) => {
+      onChange({ ...initialDataRef.current, parameters: data });
+    },
+    [onChange]
+  );
+
+  const handleRequestBodiesChange = useCallback(
+    (data: ComponentsObject["requestBodies"]) => {
+      onChange({ ...initialDataRef.current, requestBodies: data });
+    },
+    [onChange]
+  );
+
+  const handleHeadersChange = useCallback(
+    (data: ComponentsObject["headers"]) => {
+      onChange({ ...initialDataRef.current, headers: data });
+    },
+    [onChange]
+  );
+
+  const handleLinksChange = useCallback(
+    (data: ComponentsObject["links"]) => {
+      onChange({ ...initialDataRef.current, links: data });
+    },
+    [onChange]
+  );
+
+  const handleCallbacksChange = useCallback(
+    (data: ComponentsObject["callbacks"]) => {
+      onChange({ ...initialDataRef.current, callbacks: data });
+    },
+    [onChange]
+  );
 
   return (
     <div className="h-full flex flex-col">
@@ -49,45 +106,43 @@ export const ComponentsEditor = ({
         {activeSection === "schemas" && (
           <SchemasEditor
             initialData={initialData?.schemas || {}}
-            onChange={(data) => onChange({ ...initialData, schemas: data })}
+            onChange={handleSchemasChange}
           />
         )}
         {activeSection === "responses" && (
           <ResponsesEditor
             initialData={initialData?.responses || {}}
-            onChange={(data) => onChange({ ...initialData, responses: data })}
+            onChange={handleResponsesChange}
           />
         )}
         {activeSection === "parameters" && (
           <ParametersEditor
             initialData={initialData?.parameters || {}}
-            onChange={(data) => onChange({ ...initialData, parameters: data })}
+            onChange={handleParametersChange}
           />
         )}
         {activeSection === "requestBodies" && (
           <RequestBodiesEditor
             initialData={initialData?.requestBodies || {}}
-            onChange={(data) =>
-              onChange({ ...initialData, requestBodies: data })
-            }
+            onChange={handleRequestBodiesChange}
           />
         )}
         {activeSection === "headers" && (
           <HeadersEditor
             initialData={initialData?.headers || {}}
-            onChange={(data) => onChange({ ...initialData, headers: data })}
+            onChange={handleHeadersChange}
           />
         )}
         {activeSection === "links" && (
           <LinksEditor
             initialData={initialData?.links || {}}
-            onChange={(data) => onChange({ ...initialData, links: data })}
+            onChange={handleLinksChange}
           />
         )}
         {activeSection === "callbacks" && (
           <CallbacksEditor
             initialData={initialData?.callbacks || {}}
-            onChange={(data) => onChange({ ...initialData, callbacks: data })}
+            onChange={handleCallbacksChange}
           />
         )}
         {activeSection !== "securitySchemes" &&

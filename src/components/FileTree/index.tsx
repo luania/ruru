@@ -18,7 +18,8 @@ const FileTreeItem = ({ entry, level }: FileTreeItemProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [children, setChildren] = useState<FileEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { setActiveFilePath, activeFilePath } = useStore();
+  const setActiveFilePath = useStore((state) => state.setActiveFilePath);
+  const activeFilePath = useStore((state) => state.activeFilePath);
 
   const handleClick = () => {
     if (entry.isDirectory) {

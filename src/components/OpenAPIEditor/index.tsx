@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { CodeEditor } from "../CodeEditor";
 import { InfoEditor } from "./InfoEditor";
@@ -119,10 +119,23 @@ export const OpenAPIEditor = () => {
   const [isComponentsExpanded, setIsComponentsExpanded] = useState(true);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
-  const { activeFilePath, setOpenapi } = useStore();
+  const activeFilePath = useStore((state) => state.activeFilePath);
+  const setOpenapi = useStore((state) => state.setOpenapi);
   const [parsedData, setParsedData] = useState<OpenAPIObject | null>(null);
   const [rawContent, setRawContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Refs for stable callbacks
+  const rawContentRef = useRef(rawContent);
+  const parsedDataRef = useRef(parsedData);
+
+  useEffect(() => {
+    rawContentRef.current = rawContent;
+  }, [rawContent]);
+
+  useEffect(() => {
+    parsedDataRef.current = parsedData;
+  }, [parsedData]);
 
   useEffect(() => {
     const loadData = () => {
@@ -148,132 +161,173 @@ export const OpenAPIEditor = () => {
     }
   }, [activeFilePath, view, setOpenapi]);
 
-  const saveChanges = (
-    updateFn: (doc: YAML.Document) => void,
-    newData: OpenAPIObject
-  ) => {
-    if (!activeFilePath) return Promise.resolve();
+  const saveChanges = useCallback(
+    (updateFn: (doc: YAML.Document) => void, newData: OpenAPIObject) => {
+      if (!activeFilePath) return Promise.resolve();
 
-    try {
-      const doc = YAML.parseDocument(rawContent);
-      // @ts-expect-error - defaultStringType is not in the type definition but it works
-      doc.options.defaultStringType = "QUOTE_SINGLE";
+      try {
+        const doc = YAML.parseDocument(rawContentRef.current);
+        // @ts-expect-error - defaultStringType is not in the type definition but it works
+        doc.options.defaultStringType = "QUOTE_SINGLE";
 
-      updateFn(doc);
+        updateFn(doc);
 
-      const newYamlContent = doc.toString();
+        const newYamlContent = doc.toString();
 
-      return window.ipcRenderer
-        .writeFile(activeFilePath, newYamlContent)
-        .then(() => {
-          setRawContent(newYamlContent);
-          setParsedData(newData);
-          setOpenapi(newData);
-        })
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
-    } catch (error) {
-      console.error("Failed to save OpenAPI file:", error);
-      return Promise.resolve();
-    }
-  };
+        return window.ipcRenderer
+          .writeFile(activeFilePath, newYamlContent)
+          .then(() => {
+            setRawContent(newYamlContent);
+            setParsedData(newData);
+            setOpenapi(newData);
+          })
+          .catch((error) => {
+            console.error("Failed to save OpenAPI file:", error);
+          });
+      } catch (error) {
+        console.error("Failed to save OpenAPI file:", error);
+        return Promise.resolve();
+      }
+    },
+    [activeFilePath, setOpenapi]
+  );
 
-  const handleInfoChange = (infoData: InfoObject) => {
-    if (!parsedData) return;
-    const newData = { ...parsedData, info: infoData };
-    saveChanges(
-      (doc) =>
-        updateYamlDocument(doc, ["info"], parsedData.info || {}, infoData),
-      newData
-    );
-  };
+  const handleInfoChange = useCallback(
+    (infoData: InfoObject) => {
+      const data = parsedDataRef.current;
+      if (!data) return;
+      const newData = { ...data, info: infoData };
+      saveChanges(
+        (doc) => updateYamlDocument(doc, ["info"], data.info || {}, infoData),
+        newData
+      );
+    },
+    [saveChanges]
+  );
 
-  const handleServersChange = (serversData: ServerObject[]) => {
-    if (!parsedData) return;
-    const newData = { ...parsedData, servers: serversData };
-    saveChanges(
-      (doc) =>
-        updateYamlDocument(
-          doc,
-          ["servers"],
-          parsedData.servers || [],
-          serversData
-        ),
-      newData
-    );
-  };
+  const handleServersChange = useCallback(
+    (serversData: ServerObject[]) => {
+      const data = parsedDataRef.current;
+      if (!data) return;
+      const newData = { ...data, servers: serversData };
+      saveChanges(
+        (doc) =>
+          updateYamlDocument(doc, ["servers"], data.servers || [], serversData),
+        newData
+      );
+    },
+    [saveChanges]
+  );
 
-  const handleSecurityChange = (securityData: SecurityRequirementObject[]) => {
-    if (!parsedData) return;
-    const newData = { ...parsedData, security: securityData };
-    saveChanges(
-      (doc) =>
-        updateYamlDocument(
-          doc,
-          ["security"],
-          parsedData.security || [],
-          securityData
-        ),
-      newData
-    );
-  };
+  const handleSecurityChange = useCallback(
+    (securityData: SecurityRequirementObject[]) => {
+      const data = parsedDataRef.current;
+      if (!data) return;
+      const newData = { ...data, security: securityData };
+      saveChanges(
+        (doc) =>
+          updateYamlDocument(
+            doc,
+            ["security"],
+            data.security || [],
+            securityData
+          ),
+        newData
+      );
+    },
+    [saveChanges]
+  );
 
-  const handleComponentsChange = (componentsData: ComponentsObject) => {
-    if (!parsedData) return;
-    const newData = { ...parsedData, components: componentsData };
+  const handleComponentsChange = useCallback(
+    (componentsData: ComponentsObject) => {
+      const data = parsedDataRef.current;
+      if (!data) return;
+      const newData = { ...data, components: componentsData };
 
-    saveChanges(
-      (doc) =>
-        updateYamlDocument(
-          doc,
-          ["components"],
-          parsedData.components || {},
-          componentsData
-        ),
-      newData
-    );
-  };
+      saveChanges(
+        (doc) =>
+          updateYamlDocument(
+            doc,
+            ["components"],
+            data.components || {},
+            componentsData
+          ),
+        newData
+      );
+    },
+    [saveChanges]
+  );
 
-  const handleTagsChange = (tagsData: TagObject[]) => {
-    if (!parsedData) return;
-    const newData = { ...parsedData, tags: tagsData };
-    saveChanges(
-      (doc) =>
-        updateYamlDocument(doc, ["tags"], parsedData.tags || [], tagsData),
-      newData
-    );
-  };
+  const handleTagsChange = useCallback(
+    (tagsData: TagObject[]) => {
+      const data = parsedDataRef.current;
+      if (!data) return;
+      const newData = { ...data, tags: tagsData };
+      saveChanges(
+        (doc) => updateYamlDocument(doc, ["tags"], data.tags || [], tagsData),
+        newData
+      );
+    },
+    [saveChanges]
+  );
 
-  const handleAddPath = (path: string, methods: string[]) => {
-    if (!parsedData) return;
+  const handleAddPath = useCallback(
+    (path: string, methods: string[]) => {
+      const data = parsedDataRef.current;
+      if (!data) return;
 
-    const newPathItem: PathItemObject = {};
-    methods.forEach((method) => {
-      newPathItem[method as keyof PathItemObject] = {
-        summary: `${method.toUpperCase()} ${path}`,
-        responses: {
-          "200": {
-            description: "OK",
+      const newPathItem: PathItemObject = {};
+      methods.forEach((method) => {
+        newPathItem[method as keyof PathItemObject] = {
+          summary: `${method.toUpperCase()} ${path}`,
+          responses: {
+            "200": {
+              description: "OK",
+            },
           },
-        },
-      } as OperationObject;
-    });
+        } as OperationObject;
+      });
 
-    const newPaths = {
-      ...parsedData.paths,
-      [path]: newPathItem,
-    };
+      const newPaths = {
+        ...data.paths,
+        [path]: newPathItem,
+      };
 
-    const newData = { ...parsedData, paths: newPaths };
-    saveChanges(
-      (doc) => updateYamlDocument(doc, ["paths", path], undefined, newPathItem),
-      newData
-    ).then(() => {
-      setActiveSection("paths");
-      setSelectedPath(path);
-    });
-  };
+      const newData = { ...data, paths: newPaths };
+      saveChanges(
+        (doc) =>
+          updateYamlDocument(doc, ["paths", path], undefined, newPathItem),
+        newData
+      ).then(() => {
+        setActiveSection("paths");
+        setSelectedPath(path);
+      });
+    },
+    [saveChanges]
+  );
+
+  const handlePathChange = useCallback(
+    (pathKey: string, newPathItem: PathItemObject) => {
+      const data = parsedDataRef.current;
+      if (!data) return;
+      const newPaths = {
+        ...data.paths,
+        [pathKey]: newPathItem,
+      };
+      const newData = { ...data, paths: newPaths };
+      saveChanges(
+        (doc) =>
+          updateYamlDocument(
+            doc,
+            ["paths", pathKey],
+            data.paths?.[pathKey],
+            newPathItem
+          ),
+        newData
+      );
+    },
+    [saveChanges]
+  );
 
   if (isLoading) {
     return (
@@ -551,24 +605,9 @@ export const OpenAPIEditor = () => {
                       }
                       servers={parsedData.servers}
                       initialMethod={selectedMethod}
-                      onChange={(newPathItem) => {
-                        if (!parsedData) return;
-                        const newPaths = {
-                          ...parsedData.paths,
-                          [selectedPath]: newPathItem,
-                        };
-                        const newData = { ...parsedData, paths: newPaths };
-                        saveChanges(
-                          (doc) =>
-                            updateYamlDocument(
-                              doc,
-                              ["paths", selectedPath],
-                              parsedData.paths?.[selectedPath],
-                              newPathItem
-                            ),
-                          newData
-                        );
-                      }}
+                      onChange={(newPathItem) =>
+                        handlePathChange(selectedPath, newPathItem)
+                      }
                     />
                   )}
                 </div>

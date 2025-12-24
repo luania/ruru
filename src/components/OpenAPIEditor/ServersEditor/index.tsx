@@ -30,6 +30,7 @@ export const ServersEditor = ({
 }: ServersEditorProps) => {
   const hf = useForm<ServersFormData>({
     resolver: zodResolver(serverSchema),
+    mode: "onChange",
     defaultValues: {
       servers: initialData || [],
     },
@@ -41,6 +42,13 @@ export const ServersEditor = ({
   });
 
   useEffect(() => {
+    const subscription = hf.watch((value) => {
+      onChange(value.servers as ServerObject[]);
+    });
+    return () => subscription.unsubscribe();
+  }, [hf, onChange]);
+
+  useEffect(() => {
     if (initialData) {
       const currentServers = hf.getValues().servers;
       if (JSON.stringify(initialData) !== JSON.stringify(currentServers)) {
@@ -49,15 +57,8 @@ export const ServersEditor = ({
     }
   }, [initialData, hf]);
 
-  const onSubmit = (data: ServersFormData) => {
-    onChange(data.servers as ServerObject[]);
-  };
-
   return (
-    <form
-      onChange={hf.handleSubmit(onSubmit)}
-      className="space-y-6 max-w-2xl p-6"
-    >
+    <form className="space-y-6 max-w-2xl p-6">
       <div className="space-y-4">
         <div className="flex items-center justify-end">
           <Button

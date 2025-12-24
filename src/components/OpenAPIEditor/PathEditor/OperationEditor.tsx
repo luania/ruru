@@ -122,7 +122,7 @@ export const OperationEditor = ({
   onChange,
   onDelete,
 }: OperationEditorProps) => {
-  const { openapi } = useStore();
+  const openapi = useStore((state) => state.openapi);
   const globalTags = useStore((state) => state.openapi.tags);
   const [isPathParamsOpen, setIsPathParamsOpen] = useState(false);
   const [activeResponseCode, setActiveResponseCode] = useState<string | null>(

@@ -5,7 +5,7 @@ import { useStore } from "../../store/useStore";
 import { isOpenAPI } from "../../lib/openapi";
 
 export const Editor = () => {
-  const { activeFilePath } = useStore();
+  const activeFilePath = useStore((state) => state.activeFilePath);
   const [isOpenAPIFile, setIsOpenAPIFile] = useState(false);
   const [checking, setChecking] = useState(false);
 

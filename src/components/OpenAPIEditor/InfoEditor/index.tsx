@@ -38,6 +38,7 @@ interface InfoEditorProps {
 export const InfoEditor = ({ initialData, onChange }: InfoEditorProps) => {
   const hf = useForm<InfoFormData>({
     resolver: zodResolver(infoSchema),
+    mode: "onChange",
     defaultValues: (initialData as InfoFormData) || {
       title: "",
       version: "",
@@ -48,21 +49,56 @@ export const InfoEditor = ({ initialData, onChange }: InfoEditorProps) => {
   useEffect(() => {
     if (initialData) {
       const currentValues = hf.getValues();
-      if (JSON.stringify(initialData) !== JSON.stringify(currentValues)) {
+      const data = { ...currentValues } as InfoFormData;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isEmpty = (obj: any) => {
+        if (!obj) return true;
+        return Object.values(obj).every(
+          (x) => x === "" || x === undefined || x === null
+        );
+      };
+
+      if (isEmpty(data.contact)) {
+        delete data.contact;
+      }
+      if (isEmpty(data.license)) {
+        delete data.license;
+      }
+
+      if (JSON.stringify(initialData) !== JSON.stringify(data)) {
         hf.reset(initialData);
       }
     }
   }, [initialData, hf]);
 
-  const onSubmit = (data: InfoFormData) => {
-    onChange(data);
-  };
+  useEffect(() => {
+    const subscription = hf.watch((value) => {
+      const data = { ...value } as InfoFormData;
+
+      // Helper to check if object is empty
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const isEmpty = (obj: any) => {
+        if (!obj) return true;
+        return Object.values(obj).every(
+          (x) => x === "" || x === undefined || x === null
+        );
+      };
+
+      if (isEmpty(data.contact)) {
+        delete data.contact;
+      }
+      if (isEmpty(data.license)) {
+        delete data.license;
+      }
+
+      onChange(data as InfoObject);
+    });
+    return () => subscription.unsubscribe();
+  }, [hf, onChange]);
 
   return (
-    <form
-      onChange={hf.handleSubmit(onSubmit)}
-      className="space-y-6 max-w-2xl p-6"
-    >
+    <form className="space-y-6 max-w-2xl p-6">
       <div className="space-y-4">
         <h3 className="text-lg font-medium text-white">General Information</h3>
 

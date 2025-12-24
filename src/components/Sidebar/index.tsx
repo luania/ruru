@@ -5,7 +5,7 @@ import { Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export const Sidebar = () => {
-  const { workingDirectory } = useStore();
+  const workingDirectory = useStore((state) => state.workingDirectory);
   const navigate = useNavigate();
 
   return (

@@ -183,6 +183,7 @@ export const SecurityEditor = ({
 }: SecurityEditorProps) => {
   const hf = useForm<SecurityFormData>({
     resolver: zodResolver(securitySchema),
+    mode: "onChange",
     defaultValues: transformToFormData(initialData || []),
   });
 
@@ -190,6 +191,13 @@ export const SecurityEditor = ({
     control: hf.control,
     name: "requirements",
   });
+
+  useEffect(() => {
+    const subscription = hf.watch((value) => {
+      onChange(transformToApiData(value as SecurityFormData));
+    });
+    return () => subscription.unsubscribe();
+  }, [hf, onChange]);
 
   useEffect(() => {
     if (initialData) {
@@ -200,15 +208,8 @@ export const SecurityEditor = ({
     }
   }, [initialData, hf]);
 
-  const onSubmit = (data: SecurityFormData) => {
-    onChange(transformToApiData(data));
-  };
-
   return (
-    <form
-      onChange={hf.handleSubmit(onSubmit)}
-      className="space-y-6 max-w-2xl p-6"
-    >
+    <form className="space-y-6 max-w-2xl p-6">
       <div className="space-y-4">
         <div className="flex items-center justify-end">
           <Button

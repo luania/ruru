@@ -5,7 +5,7 @@ import { Save } from "lucide-react";
 import { Button } from "../ui/Button";
 
 export const CodeEditor = () => {
-  const { activeFilePath } = useStore();
+  const activeFilePath = useStore((state) => state.activeFilePath);
   const [content, setContent] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
