@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/luania/ruru/compare/v0.4.0...v0.4.1) (2025-12-24)
+
+
+### Performance Improvements
+
+* 使用 useCallback 和 useRef 优化组件渲染性能 ([9702850](https://github.com/luania/ruru/commit/970285049f73caf8a7ced3e1fa1933eaee37cbb8))
+
 ## [0.4.0](https://github.com/luania/ruru/compare/v0.3.0...v0.4.0) (2025-12-04)
 
 
