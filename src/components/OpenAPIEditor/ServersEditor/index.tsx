@@ -11,7 +11,7 @@ import type { ServerObject } from "openapi3-ts/oas31";
 const serverSchema = z.object({
   servers: z.array(
     z.object({
-      url: z.string().min(1, "URL is required"),
+      url: z.string().optional(),
       description: z.string().optional(),
     })
   ),

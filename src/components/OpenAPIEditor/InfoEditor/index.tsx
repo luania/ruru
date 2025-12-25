@@ -7,20 +7,20 @@ import { Label } from "../../ui/Label";
 import { Textarea } from "../../ui/Textarea";
 
 const infoSchema = z.object({
-  title: z.string().min(1, "Title is required"),
-  version: z.string().min(1, "Version is required"),
+  title: z.string().optional(),
+  version: z.string().optional(),
   description: z.string().optional(),
   termsOfService: z.string().optional(),
   contact: z
     .object({
       name: z.string().optional(),
       url: z.string().optional(),
-      email: z.string().email().optional().or(z.literal("")),
+      email: z.string().optional(),
     })
     .optional(),
   license: z
     .object({
-      name: z.string().min(1, "License name is required"),
+      name: z.string().optional(),
       url: z.string().optional(),
     })
     .optional(),

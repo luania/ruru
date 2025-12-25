@@ -11,12 +11,12 @@ import { Input } from "../../ui/Input";
 const tagSchema = z.object({
   tags: z.array(
     z.object({
-      name: z.string().min(1, "Name is required"),
+      name: z.string().optional(),
       description: z.string().optional(),
       externalDocs: z
         .object({
           description: z.string().optional(),
-          url: z.string().url("Invalid URL").optional().or(z.literal("")),
+          url: z.string().optional(),
         })
         .optional(),
     })

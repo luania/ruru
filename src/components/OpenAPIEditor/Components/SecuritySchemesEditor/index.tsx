@@ -18,7 +18,7 @@ import {
 const securitySchemeSchema = z.object({
   schemes: z.array(
     z.object({
-      key: z.string().min(1, "Key is required"),
+      key: z.string().optional(),
       type: z.enum(["apiKey", "http", "oauth2", "openIdConnect"]),
       description: z.string().optional(),
       name: z.string().optional(), // for apiKey

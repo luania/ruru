@@ -14,7 +14,7 @@ const securitySchema = z.object({
     z.object({
       schemes: z.array(
         z.object({
-          name: z.string().min(1, "Scheme name is required"),
+          name: z.string().optional(),
           scopes: z.string().optional(),
         })
       ),
