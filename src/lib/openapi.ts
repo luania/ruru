@@ -1,9 +1,9 @@
-import yaml from "js-yaml";
+import YAML from "yaml";
 import type { OpenAPIObject } from "openapi3-ts/oas31";
 
 export const isOpenAPI = (content: string): boolean => {
   try {
-    const parsed = yaml.load(content);
+    const parsed = YAML.parse(content);
     if (typeof parsed === "object" && parsed !== null) {
       const p = parsed as Record<string, unknown>;
       return !!(p.openapi || p.swagger);
@@ -16,7 +16,7 @@ export const isOpenAPI = (content: string): boolean => {
 
 export const parseOpenAPI = (content: string): OpenAPIObject | null => {
   try {
-    return yaml.load(content) as OpenAPIObject;
+    return YAML.parse(content) as OpenAPIObject;
   } catch {
     return null;
   }

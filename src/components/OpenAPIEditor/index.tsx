@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import { CodeEditor } from "../CodeEditor";
 import { InfoEditor } from "./InfoEditor";
@@ -10,12 +10,9 @@ import { PathEditor } from "./PathEditor";
 import { AddPathPopover } from "./AddPathPopover";
 import { Button } from "../ui/Button";
 import { Code, LayoutTemplate, ChevronRight, ChevronDown } from "lucide-react";
-import { useStore } from "../../store/useStore";
-import { parseOpenAPI } from "../../lib/openapi";
-import YAML from "yaml";
+import { useStore, selectOpenapi } from "../../store/useStore";
 import { cn, getMethodColor } from "../../lib/utils";
 import type {
-  OpenAPIObject,
   InfoObject,
   ServerObject,
   SecurityRequirementObject,
@@ -33,84 +30,6 @@ type EditorSection =
   | "components"
   | "paths";
 
-const updateYamlDocument = (
-  doc: YAML.Document,
-  path: (string | number)[],
-  oldVal: unknown,
-  newVal: unknown
-) => {
-  if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
-
-  // Handle Arrays specifically to preserve structure
-  if (Array.isArray(oldVal) && Array.isArray(newVal)) {
-    const oldLen = oldVal.length;
-    const newLen = newVal.length;
-    const minLen = Math.min(oldLen, newLen);
-
-    // Update existing items
-    for (let i = 0; i < minLen; i++) {
-      updateYamlDocument(doc, [...path, i], oldVal[i], newVal[i]);
-    }
-
-    // Add new items
-    for (let i = oldLen; i < newLen; i++) {
-      doc.setIn([...path, i], newVal[i]);
-    }
-
-    // Delete extra items (reverse order)
-    for (let i = oldLen - 1; i >= newLen; i--) {
-      doc.deleteIn([...path, i]);
-    }
-
-    // Force block style for tags
-    if (path[path.length - 1] === "tags") {
-      const node = doc.getIn(path, true) as { flow?: boolean };
-      if (node && "flow" in node) {
-        node.flow = false;
-      }
-    }
-    return;
-  }
-
-  // Handle Objects
-  if (
-    typeof oldVal === "object" &&
-    typeof newVal === "object" &&
-    oldVal !== null &&
-    newVal !== null &&
-    !Array.isArray(oldVal) &&
-    !Array.isArray(newVal)
-  ) {
-    const oldObj = oldVal as Record<string, unknown>;
-    const newObj = newVal as Record<string, unknown>;
-    const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
-
-    for (const key of allKeys) {
-      const currentPath = [...path, key];
-
-      if (!(key in newObj)) {
-        doc.deleteIn(currentPath);
-      } else if (!(key in oldObj)) {
-        doc.setIn(currentPath, newObj[key]);
-      } else {
-        updateYamlDocument(doc, currentPath, oldObj[key], newObj[key]);
-      }
-    }
-    return;
-  }
-
-  // Primitives or Type Mismatch
-  doc.setIn(path, newVal);
-
-  // Force block style for tags
-  if (path[path.length - 1] === "tags" && Array.isArray(newVal)) {
-    const node = doc.getIn(path, true) as { flow?: boolean };
-    if (node && "flow" in node) {
-      node.flow = false;
-    }
-  }
-};
-
 export const OpenAPIEditor = () => {
   const [view, setView] = useState<"form" | "code">("form");
   const [activeSection, setActiveSection] = useState<EditorSection>("info");
@@ -119,214 +38,120 @@ export const OpenAPIEditor = () => {
   const [isComponentsExpanded, setIsComponentsExpanded] = useState(true);
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
-  const activeFilePath = useStore((state) => state.activeFilePath);
-  const setOpenapi = useStore((state) => state.setOpenapi);
-  const [parsedData, setParsedData] = useState<OpenAPIObject | null>(null);
-  const [rawContent, setRawContent] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Refs for stable callbacks
-  const rawContentRef = useRef(rawContent);
-  const parsedDataRef = useRef(parsedData);
+  const activeFilePath = useStore((state) => state.activeFilePath);
+  const openapi = useStore(selectOpenapi);
+  const setRawContent = useStore((state) => state.setRawContent);
+  const updateDocument = useStore((state) => state.updateDocument);
 
+  // 加载文件
   useEffect(() => {
-    rawContentRef.current = rawContent;
-  }, [rawContent]);
+    if (!activeFilePath || view !== "form") return;
 
-  useEffect(() => {
-    parsedDataRef.current = parsedData;
-  }, [parsedData]);
-
-  useEffect(() => {
-    const loadData = () => {
-      if (!activeFilePath) return;
+    const loadFile = async () => {
       setIsLoading(true);
-      window.ipcRenderer
-        .readFile(activeFilePath)
-        .then((content) => {
-          setRawContent(content);
-          const parsed = parseOpenAPI(content) as OpenAPIObject;
-          setParsedData(parsed);
-          setOpenapi(parsed);
-        })
-        .catch((error) => {
-          console.error("Failed to parse OpenAPI file:", error);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    };
-    if (view === "form") {
-      loadData();
-    }
-  }, [activeFilePath, view, setOpenapi]);
-
-  const saveChanges = useCallback(
-    (updateFn: (doc: YAML.Document) => void, newData: OpenAPIObject) => {
-      if (!activeFilePath) return Promise.resolve();
-
       try {
-        const doc = YAML.parseDocument(rawContentRef.current);
-        // @ts-expect-error - defaultStringType is not in the type definition but it works
-        doc.options.defaultStringType = "QUOTE_SINGLE";
-
-        updateFn(doc);
-
-        const newYamlContent = doc.toString();
-
-        return window.ipcRenderer
-          .writeFile(activeFilePath, newYamlContent)
-          .then(() => {
-            setRawContent(newYamlContent);
-            setParsedData(newData);
-            setOpenapi(newData);
-          })
-          .catch((error) => {
-            console.error("Failed to save OpenAPI file:", error);
-          });
+        const content = await window.ipcRenderer.readFile(activeFilePath);
+        setRawContent(content);
       } catch (error) {
-        console.error("Failed to save OpenAPI file:", error);
-        return Promise.resolve();
+        console.error("Failed to load OpenAPI file:", error);
+      } finally {
+        setIsLoading(false);
       }
-    },
-    [activeFilePath, setOpenapi]
-  );
+    };
+
+    loadFile();
+  }, [activeFilePath, view, setRawContent]);
 
   const handleInfoChange = useCallback(
     (infoData: InfoObject) => {
-      const data = parsedDataRef.current;
-      if (!data) return;
-      const newData = { ...data, info: infoData };
-      saveChanges(
-        (doc) => updateYamlDocument(doc, ["info"], data.info || {}, infoData),
-        newData
-      );
+      updateDocument((data) => ({ ...data, info: infoData }), activeFilePath);
     },
-    [saveChanges]
+    [updateDocument, activeFilePath]
   );
 
   const handleServersChange = useCallback(
     (serversData: ServerObject[]) => {
-      const data = parsedDataRef.current;
-      if (!data) return;
-      const newData = { ...data, servers: serversData };
-      saveChanges(
-        (doc) =>
-          updateYamlDocument(doc, ["servers"], data.servers || [], serversData),
-        newData
-      );
+      updateDocument((data) => {
+        console.log(data, serversData);
+        return { ...data, servers: serversData };
+      }, activeFilePath);
     },
-    [saveChanges]
+    [updateDocument, activeFilePath]
   );
 
   const handleSecurityChange = useCallback(
     (securityData: SecurityRequirementObject[]) => {
-      const data = parsedDataRef.current;
-      if (!data) return;
-      const newData = { ...data, security: securityData };
-      saveChanges(
-        (doc) =>
-          updateYamlDocument(
-            doc,
-            ["security"],
-            data.security || [],
-            securityData
-          ),
-        newData
+      updateDocument(
+        (data) => ({ ...data, security: securityData }),
+        activeFilePath
       );
     },
-    [saveChanges]
+    [updateDocument, activeFilePath]
   );
 
   const handleComponentsChange = useCallback(
     (componentsData: ComponentsObject) => {
-      const data = parsedDataRef.current;
-      if (!data) return;
-      const newData = { ...data, components: componentsData };
-
-      saveChanges(
-        (doc) =>
-          updateYamlDocument(
-            doc,
-            ["components"],
-            data.components || {},
-            componentsData
-          ),
-        newData
+      updateDocument(
+        (data) => ({ ...data, components: componentsData }),
+        activeFilePath
       );
     },
-    [saveChanges]
+    [updateDocument, activeFilePath]
   );
 
   const handleTagsChange = useCallback(
     (tagsData: TagObject[]) => {
-      const data = parsedDataRef.current;
-      if (!data) return;
-      const newData = { ...data, tags: tagsData };
-      saveChanges(
-        (doc) => updateYamlDocument(doc, ["tags"], data.tags || [], tagsData),
-        newData
-      );
+      updateDocument((data) => ({ ...data, tags: tagsData }), activeFilePath);
     },
-    [saveChanges]
+    [updateDocument, activeFilePath]
   );
 
   const handleAddPath = useCallback(
     (path: string, methods: string[]) => {
-      const data = parsedDataRef.current;
-      if (!data) return;
-
-      const newPathItem: PathItemObject = {};
-      methods.forEach((method) => {
-        newPathItem[method as keyof PathItemObject] = {
-          summary: `${method.toUpperCase()} ${path}`,
-          responses: {
-            "200": {
-              description: "OK",
+      updateDocument((data) => {
+        const newPathItem: PathItemObject = {};
+        methods.forEach((method) => {
+          newPathItem[method as keyof PathItemObject] = {
+            summary: `${method.toUpperCase()} ${path}`,
+            responses: {
+              "200": {
+                description: "OK",
+              },
             },
+          } as OperationObject;
+        });
+
+        return {
+          ...data,
+          paths: {
+            ...data.paths,
+            [path]: newPathItem,
           },
-        } as OperationObject;
-      });
+        };
+      }, activeFilePath);
 
-      const newPaths = {
-        ...data.paths,
-        [path]: newPathItem,
-      };
-
-      const newData = { ...data, paths: newPaths };
-      saveChanges(
-        (doc) =>
-          updateYamlDocument(doc, ["paths", path], undefined, newPathItem),
-        newData
-      ).then(() => {
-        setActiveSection("paths");
-        setSelectedPath(path);
-      });
+      setActiveSection("paths");
+      setSelectedPath(path);
     },
-    [saveChanges]
+    [updateDocument, activeFilePath]
   );
 
   const handlePathChange = useCallback(
     (pathKey: string, newPathItem: PathItemObject) => {
-      const data = parsedDataRef.current;
-      if (!data) return;
-      const newPaths = {
-        ...data.paths,
-        [pathKey]: newPathItem,
-      };
-      const newData = { ...data, paths: newPaths };
-      saveChanges(
-        (doc) =>
-          updateYamlDocument(
-            doc,
-            ["paths", pathKey],
-            data.paths?.[pathKey],
-            newPathItem
-          ),
-        newData
+      updateDocument(
+        (data) => ({
+          ...data,
+          paths: {
+            ...data.paths,
+            [pathKey]: newPathItem,
+          },
+        }),
+        activeFilePath
       );
     },
-    [saveChanges]
+    [updateDocument, activeFilePath]
   );
 
   if (isLoading) {
@@ -498,63 +323,61 @@ export const OpenAPIEditor = () => {
                       <span>Paths</span>
                       <AddPathPopover onAdd={handleAddPath} />
                     </div>
-                    {parsedData?.paths &&
-                      Object.entries(parsedData.paths).map(
-                        ([path, pathItem]) => (
-                          <button
-                            key={path}
-                            onClick={() => {
-                              setActiveSection("paths");
-                              setSelectedPath(path);
-                            }}
-                            className={cn(
-                              "w-full px-4 py-2 text-sm text-left hover:bg-[#2a2d2e] transition-colors flex flex-col gap-1 border-b border-[#3e3e42]/50 flex-none",
-                              activeSection === "paths" && selectedPath === path
-                                ? "bg-[#37373d] text-white border-l-2 border-blue-500 border-b-transparent"
-                                : "text-gray-400 border-l-2 border-transparent"
-                            )}
-                          >
-                            <span className="truncate font-medium w-full">
-                              {path}
-                            </span>
-                            <div className="flex gap-1 flex-wrap">
-                              {[
-                                "get",
-                                "put",
-                                "post",
-                                "delete",
-                                "options",
-                                "head",
-                                "patch",
-                                "trace",
-                              ]
-                                .filter(
-                                  (method) =>
-                                    (pathItem as PathItemObject)[
-                                      method as keyof PathItemObject
-                                    ]
-                                )
-                                .map((method) => (
-                                  <span
-                                    key={method}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setActiveSection("paths");
-                                      setSelectedPath(path);
-                                      setSelectedMethod(method);
-                                    }}
-                                    className={cn(
-                                      "text-[10px] px-1 rounded uppercase cursor-pointer hover:brightness-110",
-                                      getMethodColor(method)
-                                    )}
-                                  >
-                                    {method}
-                                  </span>
-                                ))}
-                            </div>
-                          </button>
-                        )
-                      )}
+                    {openapi?.paths &&
+                      Object.entries(openapi.paths).map(([path, pathItem]) => (
+                        <button
+                          key={path}
+                          onClick={() => {
+                            setActiveSection("paths");
+                            setSelectedPath(path);
+                          }}
+                          className={cn(
+                            "w-full px-4 py-2 text-sm text-left hover:bg-[#2a2d2e] transition-colors flex flex-col gap-1 border-b border-[#3e3e42]/50 flex-none",
+                            activeSection === "paths" && selectedPath === path
+                              ? "bg-[#37373d] text-white border-l-2 border-blue-500 border-b-transparent"
+                              : "text-gray-400 border-l-2 border-transparent"
+                          )}
+                        >
+                          <span className="truncate font-medium w-full">
+                            {path}
+                          </span>
+                          <div className="flex gap-1 flex-wrap">
+                            {[
+                              "get",
+                              "put",
+                              "post",
+                              "delete",
+                              "options",
+                              "head",
+                              "patch",
+                              "trace",
+                            ]
+                              .filter(
+                                (method) =>
+                                  (pathItem as PathItemObject)[
+                                    method as keyof PathItemObject
+                                  ]
+                              )
+                              .map((method) => (
+                                <span
+                                  key={method}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveSection("paths");
+                                    setSelectedPath(path);
+                                    setSelectedMethod(method);
+                                  }}
+                                  className={cn(
+                                    "text-[10px] px-1 rounded uppercase cursor-pointer hover:brightness-110",
+                                    getMethodColor(method)
+                                  )}
+                                >
+                                  {method}
+                                </span>
+                              ))}
+                          </div>
+                        </button>
+                      ))}
                   </div>
                 </Panel>
               </PanelGroup>
@@ -563,35 +386,35 @@ export const OpenAPIEditor = () => {
 
             {/* Content Area */}
             <Panel className="flex-1 overflow-auto bg-[#1e1e1e]">
-              {parsedData && (
+              {openapi && (
                 <div className="h-full">
                   {activeSection === "info" && (
                     <InfoEditor
-                      initialData={parsedData.info}
+                      initialData={openapi.info}
                       onChange={handleInfoChange}
                     />
                   )}
                   {activeSection === "servers" && (
                     <ServersEditor
-                      initialData={parsedData.servers || []}
+                      initialData={openapi.servers || []}
                       onChange={handleServersChange}
                     />
                   )}
                   {activeSection === "security" && (
                     <SecurityEditor
-                      initialData={parsedData.security || []}
+                      initialData={openapi.security || []}
                       onChange={handleSecurityChange}
                     />
                   )}
                   {activeSection === "tags" && (
                     <TagsEditor
-                      initialData={parsedData.tags || []}
+                      initialData={openapi.tags || []}
                       onChange={handleTagsChange}
                     />
                   )}
                   {activeSection === "components" && (
                     <ComponentsEditor
-                      initialData={parsedData.components || {}}
+                      initialData={openapi.components || {}}
                       activeSection={activeComponentSection}
                       onChange={handleComponentsChange}
                     />
@@ -600,10 +423,9 @@ export const OpenAPIEditor = () => {
                     <PathEditor
                       path={selectedPath}
                       data={
-                        (parsedData.paths?.[selectedPath] as PathItemObject) ||
-                        {}
+                        (openapi.paths?.[selectedPath] as PathItemObject) || {}
                       }
-                      servers={parsedData.servers}
+                      servers={openapi.servers}
                       initialMethod={selectedMethod}
                       onChange={(newPathItem) =>
                         handlePathChange(selectedPath, newPathItem)

@@ -7,7 +7,7 @@ export const Home = () => {
   const navigate = useNavigate();
   const setWorkingDirectory = useStore((state) => state.setWorkingDirectory);
   const setActiveFilePath = useStore((state) => state.setActiveFilePath);
-  const setOpenapi = useStore((state) => state.setOpenapi);
+  const setRawContent = useStore((state) => state.setRawContent);
   const recentPaths = useStore((state) => state.recentPaths);
   const addRecentPath = useStore((state) => state.addRecentPath);
   const removeRecentPath = useStore((state) => state.removeRecentPath);
@@ -21,14 +21,7 @@ export const Home = () => {
           addRecentPath(path);
           setWorkingDirectory(path);
           setActiveFilePath(null);
-          setOpenapi({
-            openapi: "3.0.0",
-            info: {
-              title: "New API",
-              version: "1.0.0",
-            },
-            paths: {},
-          });
+          setRawContent("");
           navigate("/editor");
         }
       })
@@ -41,14 +34,7 @@ export const Home = () => {
     addRecentPath(path);
     setWorkingDirectory(path);
     setActiveFilePath(null);
-    setOpenapi({
-      openapi: "3.0.0",
-      info: {
-        title: "New API",
-        version: "1.0.0",
-      },
-      paths: {},
-    });
+    setRawContent("");
     navigate("/editor");
   };
 

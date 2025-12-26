@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { parseOpenAPI } from "../../lib/openapi";
 import { cn } from "../../lib/utils";
-import { useStore } from "../../store/useStore";
+import { useStore, selectOpenapi } from "../../store/useStore";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
@@ -71,9 +71,10 @@ export const ReferenceSelector = ({
   type,
   trigger,
 }: ReferenceSelectorProps) => {
-  const localComponents = useStore((state) =>
-    Object.keys(state.openapi?.components?.[type] || {})
-  );
+  const localComponents = useStore((state) => {
+    const openapi = selectOpenapi(state);
+    return Object.keys(openapi?.components?.[type] || {});
+  });
 
   const activeFilePath = useStore((state) => state.activeFilePath);
   const workingDirectory = useStore((state) => state.workingDirectory);
