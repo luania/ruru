@@ -31,7 +31,7 @@ import { Switch } from "../../ui/Switch";
 import { Textarea } from "../../ui/Textarea";
 import { SchemaDesigner } from "../Components/SchemasEditor/SchemaDesigner";
 import { SchemaAdvancedSettings } from "../Components/SchemaAdvancedSettings";
-import { useStore } from "../../../store/useStore";
+import { selectOpenapi, useStore } from "../../../store/useStore";
 import { Popover, PopoverContent, PopoverTrigger } from "../../ui/Popover";
 import { ReferenceSelector } from "../ReferenceSelector";
 
@@ -122,8 +122,8 @@ export const OperationEditor = ({
   onChange,
   onDelete,
 }: OperationEditorProps) => {
-  const openapi = useStore((state) => state.openapi);
-  const globalTags = useStore((state) => state.openapi.tags);
+  const components = useStore((s) => selectOpenapi(s).components);
+  const globalTags = useStore((s) => selectOpenapi(s).tags);
   const [isPathParamsOpen, setIsPathParamsOpen] = useState(false);
   const [activeResponseCode, setActiveResponseCode] = useState<string | null>(
     null
@@ -203,9 +203,7 @@ export const OperationEditor = ({
     const security = data.security || [];
     if (security.length === 0) return null;
 
-    const availableSchemes = Object.keys(
-      openapi?.components?.securitySchemes || {}
-    );
+    const availableSchemes = Object.keys(components?.securitySchemes || {});
 
     return (
       <div className="space-y-2 mb-6">
@@ -270,7 +268,7 @@ export const OperationEditor = ({
       .filter((p) => {
         if ("$ref" in p) {
           const refName = p.$ref.split("/").pop();
-          const resolved = openapi?.components?.parameters?.[refName || ""];
+          const resolved = components?.parameters?.[refName || ""];
 
           // 1. Try to resolve locally
           if (resolved && "in" in resolved) {
@@ -338,11 +336,8 @@ export const OperationEditor = ({
                     </div>
                     <span className="text-gray-500 text-sm truncate">
                       {
-                        (
-                          openapi?.components?.parameters?.[
-                            refName!
-                          ] as ParameterObject
-                        )?.description
+                        (components?.parameters?.[refName!] as ParameterObject)
+                          ?.description
                       }
                     </span>
                   </div>
@@ -422,8 +417,7 @@ export const OperationEditor = ({
                       isRef
                         ? () => {
                             const refName = param.$ref.split("/").pop();
-                            const resolved =
-                              openapi?.components?.parameters?.[refName!];
+                            const resolved = components?.parameters?.[refName!];
                             if (resolved) {
                               const newParams = [...(data.parameters || [])];
                               newParams[param._index] = {
