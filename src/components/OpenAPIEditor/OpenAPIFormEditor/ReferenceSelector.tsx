@@ -7,12 +7,12 @@ import {
   Search,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { parseOpenAPI } from "../../lib/openapi";
-import { cn } from "../../lib/utils";
-import { useStore } from "../../store/useStore";
-import { Button } from "../ui/Button";
-import { Input } from "../ui/Input";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/Popover";
+import { parseOpenAPI } from "../../../lib/openapi";
+import { cn } from "../../../lib/utils";
+import { useStore } from "../../../store/useStore";
+import { Button } from "../../ui/Button";
+import { Input } from "../../ui/Input";
+import { Popover, PopoverContent, PopoverTrigger } from "../../ui/Popover";
 
 interface ReferenceSelectorProps {
   value: string;
@@ -78,30 +78,24 @@ export const ReferenceSelector = ({
 
   // Load local components from current file
   useEffect(() => {
-    const loadLocalComponents = async () => {
-      if (!activeFilePath) {
-        setLocalComponents([]);
-        return;
-      }
+    if (!activeFilePath) {
+      return;
+    }
 
-      try {
-        const content: string = await window.ipcRenderer.readFile(
-          activeFilePath
-        );
+    window.ipcRenderer
+      .readFile(activeFilePath)
+      .then((content) => {
         const openapi = parseOpenAPI(content);
         if (openapi?.components?.[type]) {
           setLocalComponents(Object.keys(openapi.components[type]));
         } else {
           setLocalComponents([]);
         }
-      } catch {
+      })
+      .catch(() => {
         setLocalComponents([]);
-      }
-    };
-
-    loadLocalComponents();
+      });
   }, [activeFilePath, type, isOpen]);
-
   const [mode, setMode] = useState<"local" | "external">("local");
   const getInitialPath = () => {
     if (activeFilePath) {
@@ -134,33 +128,24 @@ export const ReferenceSelector = ({
       setIsLoading(true);
       window.ipcRenderer
         .readDirectory(currentPath)
-        .then(
-          (
-            result: Array<{ name: string; isDirectory: boolean; path: string }>
-          ) => {
-            // Filter for directories and yaml/json files
-            const filtered = result.filter(
-              (f: { name: string; isDirectory: boolean; path: string }) =>
-                f.isDirectory ||
-                f.name.endsWith(".yaml") ||
-                f.name.endsWith(".yml") ||
-                f.name.endsWith(".json")
-            );
-            // Sort directories first
-            filtered.sort(
-              (
-                a: { name: string; isDirectory: boolean },
-                b: { name: string; isDirectory: boolean }
-              ) => {
-                if (a.isDirectory === b.isDirectory)
-                  return a.name.localeCompare(b.name);
-                return a.isDirectory ? -1 : 1;
-              }
-            );
-            setFiles(filtered);
-          }
-        )
-        .catch((e: unknown) => {
+        .then((result) => {
+          // Filter for directories and yaml/json files
+          const filtered = result.filter(
+            (f) =>
+              f.isDirectory ||
+              f.name.endsWith(".yaml") ||
+              f.name.endsWith(".yml") ||
+              f.name.endsWith(".json")
+          );
+          // Sort directories first
+          filtered.sort((a, b) => {
+            if (a.isDirectory === b.isDirectory)
+              return a.name.localeCompare(b.name);
+            return a.isDirectory ? -1 : 1;
+          });
+          setFiles(filtered);
+        })
+        .catch((e) => {
           console.error("Failed to read directory", e);
         })
         .finally(() => {
@@ -177,7 +162,7 @@ export const ReferenceSelector = ({
       setIsLoading(true);
       window.ipcRenderer
         .readFile(selectedFile)
-        .then((content: string) => {
+        .then((content) => {
           const parsed = parseOpenAPI(content);
           if (parsed && parsed.components && parsed.components[type]) {
             setExternalComponents(Object.keys(parsed.components[type] || {}));
@@ -185,7 +170,7 @@ export const ReferenceSelector = ({
             setExternalComponents([]);
           }
         })
-        .catch((e: unknown) => {
+        .catch((e) => {
           console.error("Failed to parse external file", e);
           setExternalComponents([]);
         })
@@ -196,11 +181,11 @@ export const ReferenceSelector = ({
     loadExternalComponents();
   }, [selectedFile, type]);
 
-  const filteredLocalComponents = localComponents.filter((c: string) =>
+  const filteredLocalComponents = localComponents.filter((c) =>
     c.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredExternalComponents = externalComponents.filter((c: string) =>
+  const filteredExternalComponents = externalComponents.filter((c) =>
     c.toLowerCase().includes(search.toLowerCase())
   );
 

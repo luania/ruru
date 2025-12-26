@@ -45,4 +45,4 @@ jobs:
       - name: Build and Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npm run build -- --publish always
+        run: npm run build:release

@@ -7,7 +7,6 @@ export const Home = () => {
   const navigate = useNavigate();
   const setWorkingDirectory = useStore((state) => state.setWorkingDirectory);
   const setActiveFilePath = useStore((state) => state.setActiveFilePath);
-  const setRawContent = useStore((state) => state.setRawContent);
   const recentPaths = useStore((state) => state.recentPaths);
   const addRecentPath = useStore((state) => state.addRecentPath);
   const removeRecentPath = useStore((state) => state.removeRecentPath);
@@ -21,7 +20,6 @@ export const Home = () => {
           addRecentPath(path);
           setWorkingDirectory(path);
           setActiveFilePath(null);
-          setRawContent("");
           navigate("/editor");
         }
       })
@@ -34,7 +32,6 @@ export const Home = () => {
     addRecentPath(path);
     setWorkingDirectory(path);
     setActiveFilePath(null);
-    setRawContent("");
     navigate("/editor");
   };
 

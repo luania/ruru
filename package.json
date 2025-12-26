@@ -16,7 +16,8 @@
   "scripts": {
     "dev": "concurrently \"react-devtools\" \"wait-on tcp:8097 && vite\"",
     "build": "tsc -b && vite build && electron-builder",
-    "lint": "eslint .",
+    "build:release": "tsc -b && vite build && electron-builder --publish always",
+    "lint": "tsc -b --force && eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
