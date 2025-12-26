@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/luania/ruru/compare/v0.4.1...v0.4.2) (2025-12-26)
+
+
+### Bug Fixes
+
+* lint error ([bf01330](https://github.com/luania/ruru/commit/bf01330f542e52990476d340827c4f64b3bb4e74))
+
 ## [0.4.1](https://github.com/luania/ruru/compare/v0.4.0...v0.4.1) (2025-12-24)
 
 
