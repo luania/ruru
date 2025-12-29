@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/luania/ruru/compare/v0.4.2...v0.5.0) (2025-12-29)
+
+
+### Features
+
+* add Badge component and improve editor UI ([e385b3e](https://github.com/luania/ruru/commit/e385b3e2f9af810efe18159b9f7b313cc0938b4e))
+
 ## [0.4.2](https://github.com/luania/ruru/compare/v0.4.1...v0.4.2) (2025-12-26)
 
 
