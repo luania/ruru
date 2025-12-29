@@ -18,10 +18,10 @@ import { PathEditor } from "./PathEditor";
 import { SecurityEditor } from "./SecurityEditor";
 import { ServersEditor } from "./ServersEditor";
 import { TagsEditor } from "./TagsEditor";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useStore } from "../../../store/useStore";
-import YAML from "yaml";
-import { saveOpenapiYamlDocument } from "../../../lib/saveOpenapiYamlDocument";
+import YAML, { type Document } from "yaml";
+import { updateYamlDocument } from "../../../lib/updateYamlDocument";
 
 type EditorSection =
   | "info"
@@ -33,13 +33,14 @@ type EditorSection =
 
 export default function OpenAPIFormEditor() {
   const [isLoading, setIsLoading] = useState(false);
-  const [rawContent, setRawContent] = useState("");
+  const [doc, setDoc] = useState<Document | null>(null);
+  const docRef = useRef<Document | null>(null);
 
   const activeFilePath = useStore((state) => state.activeFilePath);
 
-  // 从 rawContent 派生 openapi
+  // 从 doc 派生 openapi
   const openapi = useMemo<OpenAPIObject>(() => {
-    if (!rawContent) {
+    if (!doc) {
       return {
         openapi: "3.1.0",
         info: { title: "New API", version: "1.0.0" },
@@ -48,7 +49,7 @@ export default function OpenAPIFormEditor() {
     }
 
     try {
-      return YAML.parse(rawContent) as OpenAPIObject;
+      return doc.toJS() as OpenAPIObject;
     } catch (error) {
       console.error("Failed to parse OpenAPI:", error);
       return {
@@ -57,7 +58,7 @@ export default function OpenAPIFormEditor() {
         paths: {},
       };
     }
-  }, [rawContent]);
+  }, [doc]);
 
   // 加载文件
   useEffect(() => {
@@ -67,7 +68,11 @@ export default function OpenAPIFormEditor() {
       setIsLoading(true);
       try {
         const content = await window.ipcRenderer.readFile(activeFilePath);
-        setRawContent(content);
+        const parsedDoc = YAML.parseDocument(content);
+        // @ts-expect-error - defaultStringType is not in the type definition
+        parsedDoc.options.defaultStringType = "QUOTE_SINGLE";
+        docRef.current = parsedDoc;
+        setDoc(parsedDoc);
       } catch (error) {
         console.error("Failed to load OpenAPI file:", error);
       } finally {
@@ -87,118 +92,197 @@ export default function OpenAPIFormEditor() {
 
   const handleInfoChange = useCallback(
     (infoData: InfoObject) => {
-      const newContent = saveOpenapiYamlDocument(
-        rawContent,
-        (data) => ({ ...data, info: infoData }),
-        activeFilePath
-      );
-      if (newContent) setRawContent(newContent);
+      if (!docRef.current || !activeFilePath) return;
+
+      const oldData = docRef.current.toJS() as OpenAPIObject;
+      const newData = { ...oldData, info: infoData };
+
+      updateYamlDocument(docRef.current, [], oldData, newData);
+
+      // 触发重新渲染
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+
+      // 异步保存
+      window.ipcRenderer
+        .writeFile(activeFilePath, docRef.current.toString())
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
     },
-    [activeFilePath, rawContent]
+    [activeFilePath]
   );
 
   const handleServersChange = useCallback(
     (serversData: ServerObject[]) => {
-      const newContent = saveOpenapiYamlDocument(
-        rawContent,
-        (data) => {
-          console.log(data, serversData);
-          return { ...data, servers: serversData };
-        },
-        activeFilePath
-      );
-      if (newContent) setRawContent(newContent);
+      if (!docRef.current || !activeFilePath) return;
+
+      const oldData = docRef.current.toJS() as OpenAPIObject;
+      const newData = { ...oldData, servers: serversData };
+
+      updateYamlDocument(docRef.current, [], oldData, newData);
+
+      // 触发重新渲染
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+
+      // 异步保存
+      window.ipcRenderer
+        .writeFile(activeFilePath, docRef.current.toString())
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
     },
-    [activeFilePath, rawContent]
+    [activeFilePath]
   );
 
   const handleSecurityChange = useCallback(
     (securityData: SecurityRequirementObject[]) => {
-      const newContent = saveOpenapiYamlDocument(
-        rawContent,
-        (data) => ({ ...data, security: securityData }),
-        activeFilePath
-      );
-      if (newContent) setRawContent(newContent);
+      if (!docRef.current || !activeFilePath) return;
+
+      const oldData = docRef.current.toJS() as OpenAPIObject;
+      const newData = { ...oldData, security: securityData };
+
+      updateYamlDocument(docRef.current, [], oldData, newData);
+
+      // 触发重新渲染
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+
+      // 异步保存
+      window.ipcRenderer
+        .writeFile(activeFilePath, docRef.current.toString())
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
     },
-    [activeFilePath, rawContent]
+    [activeFilePath]
   );
 
   const handleComponentsChange = useCallback(
     (componentsData: ComponentsObject) => {
-      const newContent = saveOpenapiYamlDocument(
-        rawContent,
-        (data) => ({ ...data, components: componentsData }),
-        activeFilePath
-      );
-      if (newContent) setRawContent(newContent);
+      if (!docRef.current || !activeFilePath) return;
+
+      const oldData = docRef.current.toJS() as OpenAPIObject;
+      const newData = { ...oldData, components: componentsData };
+
+      updateYamlDocument(docRef.current, [], oldData, newData);
+
+      // 触发重新渲染
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+
+      // 异步保存
+      window.ipcRenderer
+        .writeFile(activeFilePath, docRef.current.toString())
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
     },
-    [activeFilePath, rawContent]
+    [activeFilePath]
   );
 
   const handleTagsChange = useCallback(
     (tagsData: TagObject[]) => {
-      const newContent = saveOpenapiYamlDocument(
-        rawContent,
-        (data) => ({ ...data, tags: tagsData }),
-        activeFilePath
-      );
-      if (newContent) setRawContent(newContent);
+      if (!docRef.current || !activeFilePath) return;
+
+      const oldData = docRef.current.toJS() as OpenAPIObject;
+      const newData = { ...oldData, tags: tagsData };
+
+      updateYamlDocument(docRef.current, [], oldData, newData);
+
+      // 触发重新渲染
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+
+      // 异步保存
+      window.ipcRenderer
+        .writeFile(activeFilePath, docRef.current.toString())
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
     },
-    [activeFilePath, rawContent]
+    [activeFilePath]
   );
 
   const handleAddPath = useCallback(
     (path: string, methods: string[]) => {
-      const newContent = saveOpenapiYamlDocument(
-        rawContent,
-        (data) => {
-          const newPathItem: PathItemObject = {};
-          methods.forEach((method) => {
-            newPathItem[method as keyof PathItemObject] = {
-              summary: `${method.toUpperCase()} ${path}`,
-              responses: {
-                "200": {
-                  description: "OK",
-                },
-              },
-            } as OperationObject;
-          });
+      if (!docRef.current || !activeFilePath) return;
 
-          return {
-            ...data,
-            paths: {
-              ...data.paths,
-              [path]: newPathItem,
+      const oldData = docRef.current.toJS() as OpenAPIObject;
+      const newPathItem: PathItemObject = {};
+      methods.forEach((method) => {
+        newPathItem[method as keyof PathItemObject] = {
+          summary: `${method.toUpperCase()} ${path}`,
+          responses: {
+            "200": {
+              description: "OK",
             },
-          };
-        },
-        activeFilePath
-      );
+          },
+        } as OperationObject;
+      });
 
-      if (newContent) setRawContent(newContent);
+      const newData = {
+        ...oldData,
+        paths: {
+          ...oldData.paths,
+          [path]: newPathItem,
+        },
+      };
+
+      updateYamlDocument(docRef.current, [], oldData, newData);
+
+      // 触发重新渲染
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+
+      // 异步保存
+      window.ipcRenderer
+        .writeFile(activeFilePath, docRef.current.toString())
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
+
       setActiveSection("paths");
       setSelectedPath(path);
     },
-    [activeFilePath, rawContent]
+    [activeFilePath]
   );
 
   const handlePathChange = useCallback(
     (pathKey: string, newPathItem: PathItemObject) => {
-      const newContent = saveOpenapiYamlDocument(
-        rawContent,
-        (data) => ({
-          ...data,
-          paths: {
-            ...data.paths,
-            [pathKey]: newPathItem,
-          },
-        }),
-        activeFilePath
-      );
-      if (newContent) setRawContent(newContent);
+      if (!docRef.current || !activeFilePath) return;
+
+      const oldData = docRef.current.toJS() as OpenAPIObject;
+      const newData = {
+        ...oldData,
+        paths: {
+          ...oldData.paths,
+          [pathKey]: newPathItem,
+        },
+      };
+
+      updateYamlDocument(docRef.current, [], oldData, newData);
+
+      // 触发重新渲染
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+
+      // 异步保存
+      window.ipcRenderer
+        .writeFile(activeFilePath, docRef.current.toString())
+        .catch((error) => {
+          console.error("Failed to save OpenAPI file:", error);
+        });
     },
-    [activeFilePath, rawContent]
+    [activeFilePath]
   );
 
   if (isLoading) {
@@ -215,13 +299,14 @@ export default function OpenAPIFormEditor() {
       <Panel
         defaultSize={20}
         minSize={15}
-        maxSize={40}
+        maxSize={85}
         className="border-r border-[#3e3e42] bg-[#252526] flex flex-col"
       >
         <PanelGroup direction="vertical">
           <Panel
             defaultSize={40}
-            maxSize={50}
+            minSize={15}
+            maxSize={85}
             className="border-b border-[#3e3e42]"
           >
             <div className="h-full overflow-y-auto flex flex-col">

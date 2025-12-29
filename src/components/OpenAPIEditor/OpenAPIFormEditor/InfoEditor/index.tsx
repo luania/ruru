@@ -1,33 +1,7 @@
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "../../../ui/Input";
 import { Label } from "../../../ui/Label";
 import { Textarea } from "../../../ui/Textarea";
-
-const infoSchema = z.object({
-  title: z.string().optional(),
-  version: z.string().optional(),
-  description: z.string().optional(),
-  termsOfService: z.string().optional(),
-  contact: z
-    .object({
-      name: z.string().optional(),
-      url: z.string().optional(),
-      email: z.string().optional(),
-    })
-    .optional(),
-  license: z
-    .object({
-      name: z.string().optional(),
-      url: z.string().optional(),
-    })
-    .optional(),
-});
-
-type InfoFormData = z.infer<typeof infoSchema>;
-
 import type { InfoObject } from "openapi3-ts/oas31";
 
 interface InfoEditorProps {
@@ -36,119 +10,72 @@ interface InfoEditorProps {
 }
 
 export const InfoEditor = ({ initialData, onChange }: InfoEditorProps) => {
-  const hf = useForm<InfoFormData>({
-    resolver: zodResolver(infoSchema),
-    mode: "onChange",
-    defaultValues: (initialData as InfoFormData) || {
-      title: "",
-      version: "",
-      description: "",
-    },
-  });
+  const [data, setData] = useState<InfoObject>(initialData);
 
   useEffect(() => {
-    if (initialData) {
-      const currentValues = hf.getValues();
-      const data = { ...currentValues } as InfoFormData;
+    setData(initialData);
+  }, [initialData]);
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const isEmpty = (obj: any) => {
-        if (!obj) return true;
-        return Object.values(obj).every(
-          (x) => x === "" || x === undefined || x === null
-        );
-      };
+  const handleChange = (updates: Partial<InfoObject>) => {
+    const newData = { ...data, ...updates };
 
-      if (isEmpty(data.contact)) {
-        delete data.contact;
-      }
-      if (isEmpty(data.license)) {
-        delete data.license;
-      }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const isEmpty = (obj: any) => {
+      if (!obj) return true;
+      return Object.values(obj).every(
+        (x) => x === "" || x === undefined || x === null
+      );
+    };
 
-      if (JSON.stringify(initialData) !== JSON.stringify(data)) {
-        hf.reset(initialData);
-      }
+    if (isEmpty(newData.contact)) {
+      delete newData.contact;
     }
-  }, [initialData, hf]);
+    if (isEmpty(newData.license)) {
+      delete newData.license;
+    }
 
-  useEffect(() => {
-    const subscription = hf.watch((value) => {
-      const data = { ...value } as InfoFormData;
-
-      // Helper to check if object is empty
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const isEmpty = (obj: any) => {
-        if (!obj) return true;
-        return Object.values(obj).every(
-          (x) => x === "" || x === undefined || x === null
-        );
-      };
-
-      if (isEmpty(data.contact)) {
-        delete data.contact;
-      }
-      if (isEmpty(data.license)) {
-        delete data.license;
-      }
-
-      onChange(data as InfoObject);
-    });
-    return () => subscription.unsubscribe();
-  }, [hf, onChange]);
+    setData(newData);
+    onChange(newData);
+  };
 
   return (
     <form className="space-y-6 max-w-2xl p-6">
       <div className="space-y-4">
-        <h3 className="text-lg font-medium text-white">General Information</h3>
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="title">Title</Label>
-            <Controller
-              control={hf.control}
-              name="title"
-              render={({ field }) => (
-                <Input
-                  id="title"
-                  {...field}
-                  error={hf.formState.errors.title?.message}
-                />
-              )}
+            <Label htmlFor="title">Title *</Label>
+            <Input
+              id="title"
+              value={data.title || ""}
+              onChange={(e) => handleChange({ title: e.target.value })}
             />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="version">Version</Label>
-            <Controller
-              control={hf.control}
-              name="version"
-              render={({ field }) => (
-                <Input
-                  id="version"
-                  {...field}
-                  error={hf.formState.errors.version?.message}
-                />
-              )}
+            <Input
+              id="version"
+              value={data.version || ""}
+              onChange={(e) => handleChange({ version: e.target.value })}
             />
           </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="description">Description</Label>
-          <Controller
-            control={hf.control}
-            name="description"
-            render={({ field }) => <Textarea id="description" {...field} />}
+          <Textarea
+            id="description"
+            value={data.description || ""}
+            onChange={(e) => handleChange({ description: e.target.value })}
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="termsOfService">Terms of Service URL</Label>
-          <Controller
-            control={hf.control}
-            name="termsOfService"
-            render={({ field }) => <Input id="termsOfService" {...field} />}
+          <Input
+            id="termsOfService"
+            value={data.termsOfService || ""}
+            onChange={(e) => handleChange({ termsOfService: e.target.value })}
           />
         </div>
       </div>
@@ -158,32 +85,50 @@ export const InfoEditor = ({ initialData, onChange }: InfoEditorProps) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="contactName">Name</Label>
-            <Controller
-              control={hf.control}
-              name="contact.name"
-              render={({ field }) => <Input id="contactName" {...field} />}
+            <Input
+              id="contactName"
+              value={data.contact?.name || ""}
+              onChange={(e) =>
+                handleChange({
+                  contact: {
+                    name: e.target.value,
+                    email: data.contact?.email || "",
+                    url: data.contact?.url || "",
+                  },
+                })
+              }
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="contactEmail">Email</Label>
-            <Controller
-              control={hf.control}
-              name="contact.email"
-              render={({ field }) => (
-                <Input
-                  id="contactEmail"
-                  {...field}
-                  error={hf.formState.errors.contact?.email?.message}
-                />
-              )}
+            <Input
+              id="contactEmail"
+              value={data.contact?.email || ""}
+              onChange={(e) =>
+                handleChange({
+                  contact: {
+                    name: data.contact?.name || "",
+                    email: e.target.value,
+                    url: data.contact?.url || "",
+                  },
+                })
+              }
             />
           </div>
           <div className="col-span-2 space-y-2">
             <Label htmlFor="contactUrl">URL</Label>
-            <Controller
-              control={hf.control}
-              name="contact.url"
-              render={({ field }) => <Input id="contactUrl" {...field} />}
+            <Input
+              id="contactUrl"
+              value={data.contact?.url || ""}
+              onChange={(e) =>
+                handleChange({
+                  contact: {
+                    name: data.contact?.name || "",
+                    email: data.contact?.email || "",
+                    url: e.target.value,
+                  },
+                })
+              }
             />
           </div>
         </div>
@@ -194,24 +139,32 @@ export const InfoEditor = ({ initialData, onChange }: InfoEditorProps) => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="licenseName">Name</Label>
-            <Controller
-              control={hf.control}
-              name="license.name"
-              render={({ field }) => (
-                <Input
-                  id="licenseName"
-                  {...field}
-                  error={hf.formState.errors.license?.name?.message}
-                />
-              )}
+            <Input
+              id="licenseName"
+              value={data.license?.name || ""}
+              onChange={(e) =>
+                handleChange({
+                  license: {
+                    name: e.target.value,
+                    url: data.license?.url || "",
+                  },
+                })
+              }
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="licenseUrl">URL</Label>
-            <Controller
-              control={hf.control}
-              name="license.url"
-              render={({ field }) => <Input id="licenseUrl" {...field} />}
+            <Input
+              id="licenseUrl"
+              value={data.license?.url || ""}
+              onChange={(e) =>
+                handleChange({
+                  license: {
+                    name: data.license?.name || "",
+                    url: e.target.value,
+                  },
+                })
+              }
             />
           </div>
         </div>

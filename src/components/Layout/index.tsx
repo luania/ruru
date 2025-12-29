@@ -6,7 +6,7 @@ export const Layout = () => {
   return (
     <div className="h-screen w-screen bg-gray-900 text-white">
       <PanelGroup direction="horizontal">
-        <Panel defaultSize={20} minSize={15} maxSize={30}>
+        <Panel defaultSize={20} minSize={15} maxSize={85}>
           <Sidebar />
         </Panel>
         <PanelResizeHandle className="w-[1px] bg-[#3e3e42] hover:bg-blue-500 transition-colors" />

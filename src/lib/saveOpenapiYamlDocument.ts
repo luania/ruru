@@ -12,7 +12,6 @@ function generateYamlContent(
   // @ts-expect-error - defaultStringType is not in the type definition
   doc.options.defaultStringType = "QUOTE_SINGLE";
 
-  console.log({ oldData, newData });
   updateYamlDocument(doc, [], oldData, newData);
 
   return doc.toString();

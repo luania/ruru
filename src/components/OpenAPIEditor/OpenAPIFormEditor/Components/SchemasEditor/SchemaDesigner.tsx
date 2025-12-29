@@ -426,6 +426,11 @@ const SchemaRow = ({
                     variant="outline"
                     size="sm"
                     className="h-6 w-40 bg-[#252526] border-[#3e3e42] text-xs justify-start px-2"
+                    title={
+                      (schema as ReferenceObject).$ref
+                        ? (schema as ReferenceObject).$ref
+                        : "Select schema..."
+                    }
                   >
                     <span className="truncate">
                       {(schema as ReferenceObject).$ref

@@ -1,88 +1,143 @@
-import { useForm, useFieldArray, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "../../../ui/Input";
 import { Label } from "../../../ui/Label";
 import { Button } from "../../../ui/Button";
 import { ConfirmPopover } from "../../../ui/ConfirmPopover";
+import { Popover, PopoverTrigger, PopoverContent } from "../../../ui/Popover";
+import { Badge } from "../../../ui/Badge";
 import { Trash2, Plus, X } from "lucide-react";
 import type { SecurityRequirementObject } from "openapi3-ts/oas31";
-
-const securitySchema = z.object({
-  requirements: z.array(
-    z.object({
-      schemes: z.array(
-        z.object({
-          name: z.string().optional(),
-          scopes: z.string().optional(),
-        })
-      ),
-    })
-  ),
-});
-
-type SecurityFormData = z.infer<typeof securitySchema>;
 
 interface SecurityEditorProps {
   initialData: SecurityRequirementObject[];
   onChange: (data: SecurityRequirementObject[]) => void;
 }
 
-const transformToFormData = (
-  data: SecurityRequirementObject[]
-): SecurityFormData => {
-  if (!data) return { requirements: [] };
-  return {
-    requirements: data.map((req) => ({
-      schemes: Object.entries(req).map(([name, scopes]) => ({
-        name,
-        scopes: scopes.join(", "),
-      })),
-    })),
-  };
-};
+export const SecurityEditor = ({
+  initialData,
+  onChange,
+}: SecurityEditorProps) => {
+  const [requirements, setRequirements] =
+    useState<SecurityRequirementObject[]>(initialData);
 
-const transformToApiData = (
-  data: SecurityFormData
-): SecurityRequirementObject[] => {
-  return data.requirements.map((req) => {
-    const obj: SecurityRequirementObject = {};
-    req.schemes.forEach((scheme) => {
-      if (scheme.name) {
-        obj[scheme.name] = scheme.scopes
-          ? scheme.scopes
-              .split(",")
-              .map((s) => s.trim())
-              .filter(Boolean)
-          : [];
-      }
+  useEffect(() => {
+    setRequirements(initialData);
+  }, [initialData]);
+
+  const handleAdd = () => {
+    const newRequirements = [...requirements, {}];
+    setRequirements(newRequirements);
+    onChange(newRequirements);
+  };
+
+  const handleRemove = (index: number) => {
+    const newRequirements = requirements.filter((_, i) => i !== index);
+    setRequirements(newRequirements);
+    onChange(newRequirements);
+  };
+
+  const handleAddScheme = (index: number, name: string, scopes: string) => {
+    const scopesArray = scopes
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const newRequirements = requirements.map((req, i) =>
+      i === index ? { ...req, [name]: scopesArray } : req
+    );
+    setRequirements(newRequirements);
+    onChange(newRequirements);
+  };
+
+  const handleUpdateScopes = (
+    reqIndex: number,
+    schemeName: string,
+    scopes: string
+  ) => {
+    const scopesArray = scopes
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const newRequirements = requirements.map((req, i) =>
+      i === reqIndex ? { ...req, [schemeName]: scopesArray } : req
+    );
+    setRequirements(newRequirements);
+    onChange(newRequirements);
+  };
+
+  const handleDeleteScheme = (reqIndex: number, schemeName: string) => {
+    const newRequirements = requirements.map((req, i) => {
+      if (i !== reqIndex) return req;
+      const updated = { ...req };
+      delete updated[schemeName];
+      return updated;
     });
-    return obj;
-  });
+    setRequirements(newRequirements);
+    onChange(newRequirements);
+  };
+
+  return (
+    <div className="space-y-4 max-w-2xl p-6">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium">Security Requirements</Label>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={handleAdd}
+          className="text-xs text-blue-400 hover:text-blue-300"
+        >
+          <Plus size={12} className="mr-1" /> Add Requirement
+        </Button>
+      </div>
+      <div className="space-y-3">
+        {requirements.map((requirement, reqIndex) => (
+          <RequirementItem
+            key={reqIndex}
+            requirement={requirement}
+            index={reqIndex}
+            onRemove={handleRemove}
+            onAddScheme={handleAddScheme}
+            onUpdateScopes={handleUpdateScopes}
+            onDeleteScheme={handleDeleteScheme}
+          />
+        ))}
+        {requirements.length === 0 && (
+          <div className="text-sm text-gray-500 text-center py-4">
+            No security requirements defined
+          </div>
+        )}
+      </div>
+    </div>
+  );
 };
 
 const RequirementItem = ({
-  control,
+  requirement,
   index,
-  remove,
-  errors,
+  onRemove,
+  onAddScheme,
+  onUpdateScopes,
+  onDeleteScheme,
 }: {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  control: any;
+  requirement: SecurityRequirementObject;
   index: number;
-  remove: (index: number) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  errors: any;
+  onRemove: (index: number) => void;
+  onAddScheme: (index: number, name: string, scopes: string) => void;
+  onUpdateScopes: (index: number, schemeName: string, scopes: string) => void;
+  onDeleteScheme: (index: number, schemeName: string) => void;
 }) => {
-  const {
-    fields,
-    append,
-    remove: removeScheme,
-  } = useFieldArray({
-    control,
-    name: `requirements.${index}.schemes`,
-  });
+  const [newSchemeName, setNewSchemeName] = useState("");
+  const [isAddSchemeOpen, setIsAddSchemeOpen] = useState(false);
+
+  const requirementKeys = Object.keys(requirement || {});
+
+  const handleConfirmAddScheme = () => {
+    if (newSchemeName.trim()) {
+      onAddScheme(index, newSchemeName.trim(), "");
+      setNewSchemeName("");
+      setIsAddSchemeOpen(false);
+    }
+  };
 
   return (
     <div className="p-4 bg-[#252526] rounded-md border border-[#3e3e42] space-y-4">
@@ -93,7 +148,7 @@ const RequirementItem = ({
         <ConfirmPopover
           title="Delete Requirement"
           description="Are you sure you want to delete this security requirement?"
-          onConfirm={() => remove(index)}
+          onConfirm={() => onRemove(index)}
           trigger={
             <Button
               type="button"
@@ -108,140 +163,202 @@ const RequirementItem = ({
       </div>
 
       <div className="space-y-3">
-        {fields.map((field, schemeIndex) => (
-          <div key={field.id} className="flex gap-2 items-start">
-            <div className="flex-1 grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-400">Scheme Name</Label>
-                <Controller
-                  control={control}
-                  name={`requirements.${index}.schemes.${schemeIndex}.name`}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder="e.g. api_key"
-                      className="h-8 text-sm"
-                      error={
-                        errors?.requirements?.[index]?.schemes?.[schemeIndex]
-                          ?.name?.message
-                      }
-                    />
-                  )}
+        {requirementKeys.map((schemeName) => (
+          <SchemeItem
+            key={schemeName}
+            schemeName={schemeName}
+            scopes={requirement[schemeName] || []}
+            onUpdateScopes={(scopes) =>
+              onUpdateScopes(index, schemeName, scopes.join(", "))
+            }
+            onDeleteScheme={() => onDeleteScheme(index, schemeName)}
+          />
+        ))}
+        <Popover open={isAddSchemeOpen} onOpenChange={setIsAddSchemeOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="text-xs text-blue-400 hover:text-blue-300 h-8 w-full"
+            >
+              <Plus size={12} className="mr-1" /> Add Scheme
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80">
+            <div className="space-y-3">
+              <div>
+                <Label className="text-sm mb-2">Scheme Name</Label>
+                <Input
+                  value={newSchemeName}
+                  onChange={(e) => setNewSchemeName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleConfirmAddScheme();
+                    }
+                  }}
+                  placeholder="e.g. oauth2, api_key"
+                  className="h-8 text-sm"
+                  autoFocus
                 />
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-400">
-                  Scopes (comma separated)
-                </Label>
-                <Controller
-                  control={control}
-                  name={`requirements.${index}.schemes.${schemeIndex}.scopes`}
-                  render={({ field }) => (
-                    <Input
-                      {...field}
-                      placeholder="read:pets, write:pets"
-                      className="h-8 text-sm"
-                    />
-                  )}
-                />
-              </div>
-            </div>
-            <ConfirmPopover
-              title="Delete Scheme"
-              description="Are you sure you want to delete this scheme?"
-              onConfirm={() => removeScheme(schemeIndex)}
-              trigger={
+              <div className="flex justify-end gap-2">
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon"
-                  className="mt-6 text-gray-400 hover:text-red-400 h-8 w-8"
+                  size="sm"
+                  onClick={() => {
+                    setNewSchemeName("");
+                    setIsAddSchemeOpen(false);
+                  }}
                 >
-                  <X size={14} />
+                  Cancel
                 </Button>
-              }
-            />
-          </div>
-        ))}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => append({ name: "", scopes: "" })}
-          className="text-xs text-blue-400 hover:text-blue-300 px-0"
-        >
-          <Plus size={12} className="mr-1" /> Add Scheme
-        </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleConfirmAddScheme}
+                  disabled={!newSchemeName.trim()}
+                >
+                  Confirm
+                </Button>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   );
 };
 
-export const SecurityEditor = ({
-  initialData,
-  onChange,
-}: SecurityEditorProps) => {
-  const hf = useForm<SecurityFormData>({
-    resolver: zodResolver(securitySchema),
-    mode: "onChange",
-    defaultValues: transformToFormData(initialData || []),
-  });
+const SchemeItem = ({
+  schemeName,
+  scopes,
+  onUpdateScopes,
+  onDeleteScheme,
+}: {
+  schemeName: string;
+  scopes: string[];
+  onUpdateScopes: (scopes: string[]) => void;
+  onDeleteScheme: () => void;
+}) => {
+  const [newScope, setNewScope] = useState("");
+  const [isAddScopeOpen, setIsAddScopeOpen] = useState(false);
 
-  const { fields, append, remove } = useFieldArray({
-    control: hf.control,
-    name: "requirements",
-  });
-
-  useEffect(() => {
-    const subscription = hf.watch((value) => {
-      onChange(transformToApiData(value as SecurityFormData));
-    });
-    return () => subscription.unsubscribe();
-  }, [hf, onChange]);
-
-  useEffect(() => {
-    if (initialData) {
-      const currentValues = transformToApiData(hf.getValues());
-      if (JSON.stringify(initialData) !== JSON.stringify(currentValues)) {
-        hf.reset(transformToFormData(initialData));
-      }
+  const handleConfirmAddScope = () => {
+    if (newScope.trim()) {
+      onUpdateScopes([...scopes, newScope.trim()]);
+      setNewScope("");
+      setIsAddScopeOpen(false);
     }
-  }, [initialData, hf]);
+  };
+
+  const handleRemoveScope = (scopeIndex: number) => {
+    onUpdateScopes(scopes.filter((_, i) => i !== scopeIndex));
+  };
 
   return (
-    <form className="space-y-6 max-w-2xl p-6">
-      <div className="space-y-4">
-        <div className="flex items-center justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => append({ schemes: [{ name: "", scopes: "" }] })}
-            className="gap-2"
-          >
-            <Plus size={14} />
-            Add Requirement
-          </Button>
+    <div className="p-3 bg-[#1e1e1e] rounded border border-[#3e3e42] space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          <Label className="text-xs text-gray-400">Scheme Name</Label>
+          <div className="text-sm text-gray-300 font-medium">{schemeName}</div>
         </div>
-
-        <div className="space-y-4">
-          {fields.map((field, index) => (
-            <RequirementItem
-              key={field.id}
-              control={hf.control}
-              index={index}
-              remove={remove}
-              errors={hf.formState.errors}
-            />
-          ))}
-
-          {fields.length === 0 && (
-            <div className="text-center py-8 text-gray-500 border border-dashed border-[#3e3e42] rounded-md">
-              No security requirements defined
-            </div>
-          )}
-        </div>
+        <ConfirmPopover
+          title="Delete Scheme"
+          description="Are you sure you want to delete this scheme?"
+          onConfirm={onDeleteScheme}
+          trigger={
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-red-400 h-6 w-6"
+            >
+              <X size={14} />
+            </Button>
+          }
+        />
       </div>
-    </form>
+
+      <div className="space-y-2">
+        <Label className="text-xs text-gray-400">Scopes</Label>
+        <div className="flex flex-wrap gap-2">
+          {scopes.map((scope, scopeIndex) => (
+            <Badge
+              key={scopeIndex}
+              variant="secondary"
+              className="bg-[#2d2d30] text-gray-300 border-[#3e3e42] flex items-center gap-1 pr-1"
+            >
+              {scope}
+              <button
+                type="button"
+                onClick={() => handleRemoveScope(scopeIndex)}
+                className="ml-1 hover:text-red-400 transition-colors"
+              >
+                <X size={12} />
+              </button>
+            </Badge>
+          ))}
+          <Popover open={isAddScopeOpen} onOpenChange={setIsAddScopeOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="text-xs text-blue-400 hover:text-blue-300 h-6"
+              >
+                <Plus size={12} className="mr-1" /> Add Scope
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm mb-2">Scope</Label>
+                  <Input
+                    value={newScope}
+                    onChange={(e) => setNewScope(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleConfirmAddScope();
+                      }
+                    }}
+                    placeholder="e.g. read:pets"
+                    className="h-8 text-sm"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setNewScope("");
+                      setIsAddScopeOpen(false);
+                    }}
+                  >
+                    取消
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleConfirmAddScope}
+                    disabled={!newScope.trim()}
+                  >
+                    确定
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
+        {scopes.length === 0 && (
+          <div className="text-xs text-gray-500 italic">No scopes defined</div>
+        )}
+      </div>
+    </div>
   );
 };
