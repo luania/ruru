@@ -6,17 +6,34 @@
 
 A visual editor for OpenAPI specifications, built with Electron, React, and TypeScript.
 
-> 🚧 **Work In Progress**: This project is currently under active development. Features are subject to change.
-
 ## Download
 
 [Download the latest release](https://github.com/luania/ruru/releases)
 
+### Supported Platforms
+
+- **macOS** (Intel & Apple Silicon)
+- **Windows** (x64)
+- **Linux** (AppImage, deb)
+
 ## Features
 
-- Visual editing of OpenAPI documents (Work in Progress)
-- Electron-based desktop application
-- React + Tailwind CSS UI
+- 📝 **Visual Editing** - Edit OpenAPI documents with an intuitive form-based interface
+- 🔄 **Form/Code Toggle** - Switch between visual form editor and raw code view
+- 📁 **File Explorer** - Browse and manage OpenAPI files in your project
+- 🛤️ **Path Management** - Visually create and edit API endpoints (GET, POST, PUT, DELETE, etc.)
+- 🧩 **Components Editor** - Manage reusable components:
+  - Schemas
+  - Responses
+  - Parameters
+  - Examples
+  - Request Bodies
+  - Headers
+  - Security Schemes
+  - Links
+  - Callbacks
+- ⚙️ **Parameter Configuration** - Configure Security, Header, Query, and Cookie parameters
+- 📋 **Response Schema Design** - Design response schemas with visual tools
 
 ## Development
 
@@ -42,3 +59,7 @@ npm run dev
 ```bash
 npm run build
 ```
+
+## License
+
+MIT
