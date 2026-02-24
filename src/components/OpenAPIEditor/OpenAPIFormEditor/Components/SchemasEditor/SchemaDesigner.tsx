@@ -77,7 +77,7 @@ const SchemaRow = ({
   const [isAdvancedSettingsOpen, setIsAdvancedSettingsOpen] = useState(false);
   const [renameValue, setRenameValue] = useState(name || "");
   const [description, setDescription] = useState(
-    (schema as SchemaObject).description || ""
+    (schema as SchemaObject).description || "",
   );
 
   const isRef = "$ref" in schema;
@@ -131,7 +131,7 @@ const SchemaRow = ({
             let newRequired = s.required;
             if (s.required?.includes(propName)) {
               newRequired = s.required.map((r) =>
-                r === propName ? newName : r
+                r === propName ? newName : r,
               );
             }
 
@@ -334,7 +334,7 @@ const SchemaRow = ({
               <span
                 className={cn(
                   "text-sm text-gray-300 font-mono",
-                  name === "items" && "opacity-50"
+                  name === "items" && "opacity-50",
                 )}
               >
                 {name}
@@ -365,30 +365,32 @@ const SchemaRow = ({
                   updates.type = newType as SchemaObject["type"];
                 }
 
-                // Clear incompatible fields
-                if (newType !== "object") {
-                  updates.properties = undefined;
-                  updates.required = undefined;
-                  updates.additionalProperties = undefined;
-                }
-                if (newType !== "array") {
-                  updates.items = undefined;
-                }
-                if (!["allOf", "oneOf", "anyOf"].includes(newType)) {
-                  updates.allOf = undefined;
-                  updates.oneOf = undefined;
-                  updates.anyOf = undefined;
-                }
-
                 // Initialize fields for new type
                 if (newType === "array" && !(schema as SchemaObject).items) {
                   updates.items = { type: "string" };
                 }
 
-                const newSchema = { ...schema, ...updates };
-                if ("$ref" in newSchema) {
-                  delete (newSchema as { $ref?: string }).$ref;
+                const newSchema = { ...schema, ...updates } as Record<
+                  string,
+                  unknown
+                >;
+
+                // Remove incompatible fields
+                if (newType !== "object") {
+                  delete newSchema.properties;
+                  delete newSchema.required;
+                  delete newSchema.additionalProperties;
                 }
+                if (newType !== "array") {
+                  delete newSchema.items;
+                }
+                if (!["allOf", "oneOf", "anyOf"].includes(newType)) {
+                  delete newSchema.allOf;
+                  delete newSchema.oneOf;
+                  delete newSchema.anyOf;
+                }
+                delete newSchema.$ref;
+
                 onUpdate(newSchema as SchemaObject);
               }}
             >
@@ -510,7 +512,7 @@ const SchemaRow = ({
                 "h-6 w-6",
                 required
                   ? "text-red-500 hover:text-red-400"
-                  : "text-gray-500 hover:text-gray-300"
+                  : "text-gray-500 hover:text-gray-300",
               )}
               onClick={onToggleRequired}
               title="Toggle Required"
@@ -558,7 +560,7 @@ const SchemaRow = ({
                   "h-6 w-6",
                   (schema as SchemaObject).description
                     ? "text-blue-400 hover:text-blue-300"
-                    : "text-gray-500 hover:text-gray-300"
+                    : "text-gray-500 hover:text-gray-300",
                 )}
                 title="Edit Description"
               >
