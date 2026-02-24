@@ -42,7 +42,7 @@ export const SecurityEditor = ({
       .map((s) => s.trim())
       .filter(Boolean);
     const newRequirements = requirements.map((req, i) =>
-      i === index ? { ...req, [name]: scopesArray } : req
+      i === index ? { ...req, [name]: scopesArray } : req,
     );
     setRequirements(newRequirements);
     onChange(newRequirements);
@@ -51,14 +51,14 @@ export const SecurityEditor = ({
   const handleUpdateScopes = (
     reqIndex: number,
     schemeName: string,
-    scopes: string
+    scopes: string,
   ) => {
     const scopesArray = scopes
       .split(",")
       .map((s) => s.trim())
       .filter(Boolean);
     const newRequirements = requirements.map((req, i) =>
-      i === reqIndex ? { ...req, [schemeName]: scopesArray } : req
+      i === reqIndex ? { ...req, [schemeName]: scopesArray } : req,
     );
     setRequirements(newRequirements);
     onChange(newRequirements);
@@ -208,6 +208,7 @@ const RequirementItem = ({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="text-gray-300 hover:text-white"
                   onClick={() => {
                     setNewSchemeName("");
                     setIsAddSchemeOpen(false);
@@ -335,12 +336,13 @@ const SchemeItem = ({
                     type="button"
                     variant="ghost"
                     size="sm"
+                    className="text-gray-300 hover:text-white"
                     onClick={() => {
                       setNewScope("");
                       setIsAddScopeOpen(false);
                     }}
                   >
-                    取消
+                    Cancel
                   </Button>
                   <Button
                     type="button"
@@ -348,7 +350,7 @@ const SchemeItem = ({
                     onClick={handleConfirmAddScope}
                     disabled={!newScope.trim()}
                   >
-                    确定
+                    Confirm
                   </Button>
                 </div>
               </div>

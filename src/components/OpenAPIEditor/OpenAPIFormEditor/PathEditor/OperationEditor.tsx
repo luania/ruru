@@ -709,7 +709,7 @@ export const OperationEditor = ({
               </PopoverTrigger>
               <PopoverContent className="w-48 p-1" align="start">
                 <div className="max-h-48 overflow-y-auto">
-                  {globalTags?.length === 0 ? (
+                  {!globalTags?.length ? (
                     <div className="text-xs text-gray-500 p-2 text-center">
                       No global tags defined.
                     </div>

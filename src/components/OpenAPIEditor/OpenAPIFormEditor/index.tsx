@@ -90,6 +90,21 @@ export default function OpenAPIFormEditor() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
 
+  const saveFile = useCallback(() => {
+    if (!activeFilePath || !docRef.current) return;
+
+    window.ipcRenderer
+      .writeFile(
+        activeFilePath,
+        docRef.current.toString({
+          lineWidth: 0,
+        }),
+      )
+      .catch((error) => {
+        console.error("Failed to save OpenAPI file:", error);
+      });
+  }, [activeFilePath]);
+
   const handleInfoChange = useCallback(
     (infoData: InfoObject) => {
       if (!docRef.current || !activeFilePath) return;
@@ -104,14 +119,9 @@ export default function OpenAPIFormEditor() {
       docRef.current = cloned;
       setDoc(cloned);
 
-      // 异步保存
-      window.ipcRenderer
-        .writeFile(activeFilePath, docRef.current.toString())
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
+      saveFile();
     },
-    [activeFilePath]
+    [activeFilePath, saveFile],
   );
 
   const handleServersChange = useCallback(
@@ -128,14 +138,9 @@ export default function OpenAPIFormEditor() {
       docRef.current = cloned;
       setDoc(cloned);
 
-      // 异步保存
-      window.ipcRenderer
-        .writeFile(activeFilePath, docRef.current.toString())
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
+      saveFile();
     },
-    [activeFilePath]
+    [activeFilePath, saveFile],
   );
 
   const handleSecurityChange = useCallback(
@@ -152,14 +157,9 @@ export default function OpenAPIFormEditor() {
       docRef.current = cloned;
       setDoc(cloned);
 
-      // 异步保存
-      window.ipcRenderer
-        .writeFile(activeFilePath, docRef.current.toString())
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
+      saveFile();
     },
-    [activeFilePath]
+    [activeFilePath, saveFile],
   );
 
   const handleComponentsChange = useCallback(
@@ -176,14 +176,9 @@ export default function OpenAPIFormEditor() {
       docRef.current = cloned;
       setDoc(cloned);
 
-      // 异步保存
-      window.ipcRenderer
-        .writeFile(activeFilePath, docRef.current.toString())
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
+      saveFile();
     },
-    [activeFilePath]
+    [activeFilePath, saveFile],
   );
 
   const handleTagsChange = useCallback(
@@ -200,14 +195,9 @@ export default function OpenAPIFormEditor() {
       docRef.current = cloned;
       setDoc(cloned);
 
-      // 异步保存
-      window.ipcRenderer
-        .writeFile(activeFilePath, docRef.current.toString())
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
+      saveFile();
     },
-    [activeFilePath]
+    [activeFilePath, saveFile],
   );
 
   const handleAddPath = useCallback(
@@ -242,17 +232,12 @@ export default function OpenAPIFormEditor() {
       docRef.current = cloned;
       setDoc(cloned);
 
-      // 异步保存
-      window.ipcRenderer
-        .writeFile(activeFilePath, docRef.current.toString())
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
+      saveFile();
 
       setActiveSection("paths");
       setSelectedPath(path);
     },
-    [activeFilePath]
+    [activeFilePath, saveFile],
   );
 
   const handlePathChange = useCallback(
@@ -275,14 +260,9 @@ export default function OpenAPIFormEditor() {
       docRef.current = cloned;
       setDoc(cloned);
 
-      // 异步保存
-      window.ipcRenderer
-        .writeFile(activeFilePath, docRef.current.toString())
-        .catch((error) => {
-          console.error("Failed to save OpenAPI file:", error);
-        });
+      saveFile();
     },
-    [activeFilePath]
+    [activeFilePath, saveFile],
   );
 
   if (isLoading) {
@@ -319,7 +299,7 @@ export default function OpenAPIFormEditor() {
                   "w-full px-4 py-3 text-sm text-left hover:bg-[#2a2d2e] transition-colors flex-none",
                   activeSection === "info"
                     ? "bg-[#37373d] text-white font-medium border-l-2 border-blue-500"
-                    : "text-gray-400 border-l-2 border-transparent"
+                    : "text-gray-400 border-l-2 border-transparent",
                 )}
               >
                 Info
@@ -333,7 +313,7 @@ export default function OpenAPIFormEditor() {
                   "w-full px-4 py-3 text-sm text-left hover:bg-[#2a2d2e] transition-colors flex-none",
                   activeSection === "servers"
                     ? "bg-[#37373d] text-white font-medium border-l-2 border-blue-500"
-                    : "text-gray-400 border-l-2 border-transparent"
+                    : "text-gray-400 border-l-2 border-transparent",
                 )}
               >
                 Servers
@@ -347,7 +327,7 @@ export default function OpenAPIFormEditor() {
                   "w-full px-4 py-3 text-sm text-left hover:bg-[#2a2d2e] transition-colors flex-none",
                   activeSection === "security"
                     ? "bg-[#37373d] text-white font-medium border-l-2 border-blue-500"
-                    : "text-gray-400 border-l-2 border-transparent"
+                    : "text-gray-400 border-l-2 border-transparent",
                 )}
               >
                 Security
@@ -361,7 +341,7 @@ export default function OpenAPIFormEditor() {
                   "w-full px-4 py-3 text-sm text-left hover:bg-[#2a2d2e] transition-colors flex-none",
                   activeSection === "tags"
                     ? "bg-[#37373d] text-white font-medium border-l-2 border-blue-500"
-                    : "text-gray-400 border-l-2 border-transparent"
+                    : "text-gray-400 border-l-2 border-transparent",
                 )}
               >
                 Tags
@@ -399,7 +379,7 @@ export default function OpenAPIFormEditor() {
                         onClick={() => {
                           setActiveSection("components");
                           setActiveComponentSection(
-                            section as ComponentSection
+                            section as ComponentSection,
                           );
                           setSelectedPath(null);
                         }}
@@ -408,7 +388,7 @@ export default function OpenAPIFormEditor() {
                           activeSection === "components" &&
                             activeComponentSection === section
                             ? "text-blue-400 font-medium bg-[#2a2d2e]"
-                            : "text-gray-500"
+                            : "text-gray-500",
                         )}
                       >
                         {section.charAt(0).toUpperCase() + section.slice(1)}
@@ -438,7 +418,7 @@ export default function OpenAPIFormEditor() {
                       "w-full px-4 py-2 text-sm text-left hover:bg-[#2a2d2e] transition-colors flex flex-col gap-1 border-b border-[#3e3e42]/50 flex-none",
                       activeSection === "paths" && selectedPath === path
                         ? "bg-[#37373d] text-white border-l-2 border-blue-500 border-b-transparent"
-                        : "text-gray-400 border-l-2 border-transparent"
+                        : "text-gray-400 border-l-2 border-transparent",
                     )}
                   >
                     <span className="truncate font-medium w-full">{path}</span>
@@ -457,7 +437,7 @@ export default function OpenAPIFormEditor() {
                           (method) =>
                             (pathItem as PathItemObject)[
                               method as keyof PathItemObject
-                            ]
+                            ],
                         )
                         .map((method) => (
                           <span
@@ -470,7 +450,7 @@ export default function OpenAPIFormEditor() {
                             }}
                             className={cn(
                               "text-[10px] px-1 rounded uppercase cursor-pointer hover:brightness-110",
-                              getMethodColor(method)
+                              getMethodColor(method),
                             )}
                           >
                             {method}

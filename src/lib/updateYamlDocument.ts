@@ -6,12 +6,37 @@ export function updateYamlDocument(
   doc: YAML.Document,
   path: (string | number)[],
   oldVal: unknown,
-  newVal: unknown
+  newVal: unknown,
 ): void {
   if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
 
-  // 获取父节点和当前键
+  // 根路径：增量更新而非整体替换，以保留原始格式
   if (path.length === 0) {
+    if (
+      typeof oldVal === "object" &&
+      typeof newVal === "object" &&
+      oldVal !== null &&
+      newVal !== null &&
+      !Array.isArray(oldVal) &&
+      !Array.isArray(newVal)
+    ) {
+      const map = doc.contents as YAMLMap;
+      if (map instanceof YAMLMap) {
+        updateObject(
+          map,
+          oldVal as Record<string, unknown>,
+          newVal as Record<string, unknown>,
+        );
+        return;
+      }
+    }
+    if (Array.isArray(oldVal) && Array.isArray(newVal)) {
+      const seq = doc.contents as YAMLSeq;
+      if (seq instanceof YAMLSeq) {
+        updateArray(seq, oldVal, newVal, "root");
+        return;
+      }
+    }
     doc.contents = createNode(newVal);
     return;
   }
@@ -31,7 +56,7 @@ export function updateYamlDocument(
 // 获取指定路径的节点
 function getNode(
   doc: YAML.Document,
-  path: (string | number)[]
+  path: (string | number)[],
 ): YAMLMap | YAMLSeq | null {
   let current: YAMLMap | YAMLSeq | Scalar | null = doc.contents as
     | YAMLMap
@@ -120,7 +145,7 @@ function setNodeValue(
   parent: YAMLMap | YAMLSeq,
   key: string | number,
   oldVal: unknown,
-  newVal: unknown
+  newVal: unknown,
 ): void {
   if (parent instanceof YAMLMap) {
     const mapKey = key as string;
@@ -148,7 +173,7 @@ function setNodeValue(
       updateObject(
         map,
         oldVal as Record<string, unknown>,
-        newVal as Record<string, unknown>
+        newVal as Record<string, unknown>,
       );
     } else {
       parent.set(mapKey, createNode(newVal));
@@ -184,7 +209,7 @@ function setNodeValue(
       updateObject(
         map,
         oldVal as Record<string, unknown>,
-        newVal as Record<string, unknown>
+        newVal as Record<string, unknown>,
       );
     } else {
       parent.items[index] = createNode(newVal);
@@ -197,7 +222,7 @@ function updateArray(
   seq: YAMLSeq,
   oldArr: unknown[],
   newArr: unknown[],
-  key: string | number
+  key: string | number,
 ): void {
   const oldLen = oldArr.length;
   const newLen = newArr.length;
@@ -229,7 +254,7 @@ function updateArrayItem(
   seq: YAMLSeq,
   index: number,
   oldVal: unknown,
-  newVal: unknown
+  newVal: unknown,
 ): void {
   if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
 
@@ -256,7 +281,7 @@ function updateArrayItem(
     updateObject(
       map,
       oldVal as Record<string, unknown>,
-      newVal as Record<string, unknown>
+      newVal as Record<string, unknown>,
     );
   } else {
     seq.items[index] = createNode(newVal);
@@ -267,7 +292,7 @@ function updateArrayItem(
 function updateObject(
   map: YAMLMap,
   oldObj: Record<string, unknown>,
-  newObj: Record<string, unknown>
+  newObj: Record<string, unknown>,
 ): void {
   const allKeys = new Set([...Object.keys(oldObj), ...Object.keys(newObj)]);
 
@@ -290,7 +315,7 @@ function updateObjectValue(
   map: YAMLMap,
   key: string,
   oldVal: unknown,
-  newVal: unknown
+  newVal: unknown,
 ): void {
   if (JSON.stringify(oldVal) === JSON.stringify(newVal)) return;
 
@@ -317,7 +342,7 @@ function updateObjectValue(
     updateObject(
       childMap,
       oldVal as Record<string, unknown>,
-      newVal as Record<string, unknown>
+      newVal as Record<string, unknown>,
     );
   } else {
     map.set(key, createNode(newVal));
