@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/luania/ruru/compare/v0.5.1...v0.6.0) (2026-02-25)
+
+
+### Features
+
+* manage path parameters at PathItem level with $ref support and auto-path-rename ([afe219e](https://github.com/luania/ruru/commit/afe219ef5fb6ca0c18ee960b34bda59cf18b0296))
+
 ## [0.5.1](https://github.com/luania/ruru/compare/v0.5.0...v0.5.1) (2026-02-24)
 
 
