@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/luania/ruru/compare/v0.6.0...v0.7.0) (2026-02-25)
+
+
+### Features
+
+* add context menu for paths and methods, improve UI interactions ([288e6f3](https://github.com/luania/ruru/commit/288e6f35f489c902a57ecd19327013d5f909e254))
+
 ## [0.6.0](https://github.com/luania/ruru/compare/v0.5.1...v0.6.0) (2026-02-25)
 
 
