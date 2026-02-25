@@ -36,7 +36,11 @@ export const ParameterDesigner = ({
           <Select
             value={parameter.in}
             onValueChange={(value) =>
-              onChange({ ...parameter, in: value as ParameterObject["in"] })
+              onChange({
+                ...parameter,
+                in: value as ParameterObject["in"],
+                ...(value === "path" ? { required: true } : {}),
+              })
             }
           >
             <SelectTrigger>
@@ -69,10 +73,11 @@ export const ParameterDesigner = ({
           type="checkbox"
           id="required"
           checked={parameter.required || false}
+          disabled={parameter.in === "path"}
           onChange={(e) =>
             onChange({ ...parameter, required: e.target.checked })
           }
-          className="h-4 w-4 rounded border-gray-300 bg-[#1e1e1e] text-blue-600 focus:ring-blue-500"
+          className="h-4 w-4 rounded border-gray-300 bg-[#1e1e1e] text-blue-600 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         />
         <Label htmlFor="required" className="cursor-pointer">
           Required

@@ -21,6 +21,7 @@ import {
 } from "../../../ui/Select";
 import { ReferenceSelector } from "../../ReferenceSelector";
 import { SchemaAdvancedSettings } from "../Components/SchemaAdvancedSettings";
+import { ContextMenu, type ContextMenuItem } from "../../../ui/ContextMenu";
 import type {
   PathItemObject,
   OperationObject,
@@ -316,6 +317,11 @@ export const PathEditor = ({
   const [isAddPopoverOpen, setIsAddPopoverOpen] = useState(false);
   const [pathParamsOpen, setPathParamsOpen] = useState(false);
   const [newlyAddedMethod, setNewlyAddedMethod] = useState<string | null>(null);
+  const [methodContextMenu, setMethodContextMenu] = useState<{
+    x: number;
+    y: number;
+    method: string;
+  } | null>(null);
   const [prevInitialMethod, setPrevInitialMethod] = useState(initialMethod);
 
   // Refs for stable callbacks
@@ -480,6 +486,24 @@ export const PathEditor = ({
                       <span className="flex-1 text-xs text-gray-500 italic">
                         Not defined
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 text-xs text-gray-400 hover:text-white"
+                        onClick={() => {
+                          handlePathParamChange([
+                            ...pathLevelParams,
+                            {
+                              name,
+                              in: "path",
+                              required: true,
+                              schema: { type: "string" },
+                            } as ParameterObject,
+                          ]);
+                        }}
+                      >
+                        Define
+                      </Button>
                       <ReferenceSelector
                         value=""
                         type="parameters"
@@ -629,6 +653,14 @@ export const PathEditor = ({
                 <button
                   key={method}
                   onClick={() => setActiveMethod(method)}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setMethodContextMenu({
+                      x: e.clientX,
+                      y: e.clientY,
+                      method,
+                    });
+                  }}
                   className={cn(
                     "px-4 py-3 text-sm font-medium uppercase border-b-2 transition-colors relative",
                     isActive
@@ -720,6 +752,32 @@ export const PathEditor = ({
           </div>
         )}
       </div>
+
+      {methodContextMenu && (
+        <ContextMenu
+          x={methodContextMenu.x}
+          y={methodContextMenu.y}
+          onClose={() => setMethodContextMenu(null)}
+          items={
+            [
+              {
+                label: `Delete ${methodContextMenu.method.toUpperCase()}`,
+                variant: "destructive",
+                onClick: () => {
+                  const method = methodContextMenu.method;
+                  handleOperationChange(method, undefined);
+                  if (activeMethod === method) {
+                    const remaining = METHODS.filter(
+                      (m) => m !== method && data[m as keyof PathItemObject],
+                    );
+                    setActiveMethod(remaining[0] || null);
+                  }
+                },
+              },
+            ] as ContextMenuItem[]
+          }
+        />
+      )}
     </div>
   );
 };
