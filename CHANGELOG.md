@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/luania/ruru/compare/v0.7.0...v0.8.0) (2026-02-25)
+
+
+### Features
+
+* extract MediaTypeSchemaEditor and split OperationEditor ([cfd906d](https://github.com/luania/ruru/commit/cfd906da301d2b335d57d85a46cef30acb342b2e))
+
 ## [0.7.0](https://github.com/luania/ruru/compare/v0.6.0...v0.7.0) (2026-02-25)
 
 
