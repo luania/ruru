@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/luania/ruru/compare/v0.5.0...v0.5.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* remove incompatible schema fields with delete instead of undefined ([84222e0](https://github.com/luania/ruru/commit/84222e0c0a1cd25eb9acbacdca0786857616de85))
+
 ## [0.5.0](https://github.com/luania/ruru/compare/v0.4.2...v0.5.0) (2025-12-29)
 
 
