@@ -14,7 +14,6 @@ import type {
   RequestBodyObject,
   ResponseObject,
   SchemaObject,
-  ServerObject,
 } from "openapi3-ts/oas31";
 import { cn, getSchemaTypeColor } from "../../../../lib/utils";
 import { Button } from "../../../ui/Button";
@@ -110,7 +109,6 @@ interface OperationEditorProps {
   method: string;
   path: string;
   data: OperationObject;
-  servers?: ServerObject[];
   openapi: OpenAPIObject;
   onChange: (data: OperationObject) => void;
   onDelete?: () => void;
@@ -119,21 +117,19 @@ interface OperationEditorProps {
 export const OperationEditor = ({
   path,
   data,
-  servers,
   openapi,
   onChange,
   onDelete,
 }: OperationEditorProps) => {
   const components = openapi.components;
   const globalTags = openapi.tags;
-  const [isPathParamsOpen, setIsPathParamsOpen] = useState(false);
   const [activeResponseCode, setActiveResponseCode] = useState<string | null>(
-    null
+    null,
   );
   const [customStatusCode, setCustomStatusCode] = useState("");
   const [customContentType, setCustomContentType] = useState("");
   const [activeContentType, setActiveContentType] = useState<string | null>(
-    null
+    null,
   );
 
   const pathParamNames = useMemo(() => {
@@ -143,7 +139,7 @@ export const OperationEditor = ({
   const handleParamChange = (
     index: number,
     field: keyof ParameterObject,
-    value: ParameterObject[keyof ParameterObject]
+    value: ParameterObject[keyof ParameterObject],
   ) => {
     const newParams = [...(data.parameters || [])];
     newParams[index] = { ...newParams[index], [field]: value };
@@ -166,20 +162,6 @@ export const OperationEditor = ({
   const handleDeleteParam = (index: number) => {
     const newParams = [...(data.parameters || [])];
     newParams.splice(index, 1);
-    onChange({ ...data, parameters: newParams });
-  };
-
-  const handleCreatePathParam = (name: string) => {
-    const newParams = [
-      ...(data.parameters || []),
-      {
-        name,
-        in: "path",
-        required: true,
-        schema: { type: "string" },
-        description: "",
-      } as ParameterObject,
-    ];
     onChange({ ...data, parameters: newParams });
   };
 
@@ -263,7 +245,7 @@ export const OperationEditor = ({
 
   const renderParamsSection = (
     title: string,
-    inType: ParameterObject["in"]
+    inType: ParameterObject["in"],
   ) => {
     const params = (data.parameters || [])
       .map((p, i) => ({ ...p, _index: i }))
@@ -277,7 +259,16 @@ export const OperationEditor = ({
             return (resolved as ParameterObject).in === inType;
           }
 
-          // 2. Heuristic for external/unresolved refs
+          // 2. Check if this $ref matches a path param name — exclude from non-path sections
+          if (
+            pathParamNames.some(
+              (n) => n.toLowerCase() === refName?.toLowerCase(),
+            )
+          ) {
+            return inType === "path";
+          }
+
+          // 3. Heuristic for external/unresolved refs
           const refLower = p.$ref.toLowerCase();
           // Check for explicit type in path
           if (refLower.includes("/header/") || refLower.includes("/headers/"))
@@ -289,7 +280,7 @@ export const OperationEditor = ({
           if (refLower.includes("/query/") || refLower.includes("/queries/"))
             return inType === "query";
 
-          // 3. Check for common parameter names that are usually query params
+          // 4. Check for common parameter names that are usually query params
           if (
             [
               "pagenum",
@@ -306,7 +297,7 @@ export const OperationEditor = ({
             return inType === "query";
           }
 
-          // 4. Default fallback to 'query' if we can't determine
+          // 5. Default fallback to 'query' if we can't determine
           // This ensures they show up SOMEWHERE rather than nowhere.
           if (inType === "query") return true;
 
@@ -372,7 +363,7 @@ export const OperationEditor = ({
                         handleParamChange(
                           param._index,
                           "description",
-                          e.target.value
+                          e.target.value,
                         )
                       }
                       placeholder="Description"
@@ -390,13 +381,13 @@ export const OperationEditor = ({
                         "h-7 w-7",
                         (param as ParameterObject).required
                           ? "text-red-400"
-                          : "text-gray-500"
+                          : "text-gray-500",
                       )}
                       onClick={() =>
                         handleParamChange(
                           param._index,
                           "required",
-                          !(param as ParameterObject).required
+                          !(param as ParameterObject).required,
                         )
                       }
                       title="Required"
@@ -408,6 +399,7 @@ export const OperationEditor = ({
                   <ReferenceSelector
                     value={isRef ? param.$ref : ""}
                     type="parameters"
+                    parameterIn={inType}
                     onChange={(ref) => {
                       const newParams = [...(data.parameters || [])];
                       newParams[param._index] = {
@@ -438,8 +430,8 @@ export const OperationEditor = ({
                         variant="ghost"
                         size="icon"
                         className={cn(
-                          "h-7 w-7 hover:text-white",
-                          isRef ? "text-blue-400" : "text-gray-500"
+                          "h-7 max-w-[320px] hover:text-white",
+                          isRef ? "text-blue-400" : "text-gray-500",
                         )}
                         title={isRef ? "Change Reference" : "Link to Component"}
                       >
@@ -484,7 +476,7 @@ export const OperationEditor = ({
                               handleParamChange(
                                 param._index,
                                 "schema",
-                                newSchema
+                                newSchema,
                               )
                             }
                           />
@@ -559,111 +551,6 @@ export const OperationEditor = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center border border-[#3e3e42] rounded-md bg-[#252526] px-3 py-1.5">
-            <span className="text-gray-500 text-sm mr-2">
-              {servers?.[0]?.url || "No server URL defined..."}
-            </span>
-            <span className="text-gray-300 text-sm font-medium">{path}</span>
-          </div>
-          <Button
-            variant={isPathParamsOpen ? "secondary" : "outline"}
-            size="sm"
-            onClick={() => setIsPathParamsOpen(!isPathParamsOpen)}
-            disabled={pathParamNames.length === 0}
-            className="relative"
-          >
-            Path Params
-            {pathParamNames.length > 0 && (
-              <span className="ml-2 bg-blue-500/20 text-blue-400 text-[10px] px-1.5 py-0.5 rounded-full">
-                {pathParamNames.length}
-              </span>
-            )}
-          </Button>
-        </div>
-
-        {isPathParamsOpen && (
-          <div className="border border-[#3e3e42] rounded-md p-4 bg-[#252526] space-y-4">
-            <div className="text-sm font-medium text-gray-400">
-              Path Parameters
-            </div>
-            <div className="space-y-2">
-              {pathParamNames.map((name) => {
-                const paramIndex = (data.parameters || []).findIndex(
-                  (p) =>
-                    !("$ref" in p) &&
-                    (p as ParameterObject).in === "path" &&
-                    (p as ParameterObject).name === name
-                );
-                const param =
-                  paramIndex >= 0
-                    ? (data.parameters![paramIndex] as ParameterObject)
-                    : null;
-
-                return (
-                  <div
-                    key={name}
-                    className="flex items-center gap-2 p-2 bg-[#1e1e1e] border border-[#3e3e42] rounded-md"
-                  >
-                    <div className="w-48 px-3 py-1.5 text-sm font-mono text-blue-400 bg-[#252526] rounded border border-[#3e3e42]">
-                      {name}
-                    </div>
-                    {param ? (
-                      <>
-                        <div className="w-auto min-w-[100px]">
-                          <ParamTypeSelector
-                            schema={
-                              (param.schema as SchemaObject) || {
-                                type: "string",
-                              }
-                            }
-                            onChange={(newSchema) =>
-                              handleParamChange(paramIndex, "schema", newSchema)
-                            }
-                          />
-                        </div>
-                        <Input
-                          value={param.description || ""}
-                          onChange={(e) =>
-                            handleParamChange(
-                              paramIndex,
-                              "description",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Description"
-                          className="flex-1 h-8 bg-transparent border-transparent hover:border-[#3e3e42] focus:border-blue-500"
-                        />
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-400 cursor-not-allowed opacity-50"
-                            title="Path parameters are always required"
-                          >
-                            <LinkIcon size={14} />
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex-1 flex items-center justify-end">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => handleCreatePathParam(name)}
-                          className="h-8"
-                        >
-                          Define Parameter
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
         <div className="space-y-1">
           <label className="text-xs text-gray-500 uppercase">
             Operation ID
@@ -722,7 +609,7 @@ export const OperationEditor = ({
                             "flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm",
                             data.tags?.includes(tag.name)
                               ? "opacity-50 cursor-not-allowed text-gray-500"
-                              : "hover:bg-[#2a2d2e] text-gray-300 hover:text-white"
+                              : "hover:bg-[#2a2d2e] text-gray-300 hover:text-white",
                           )}
                           onClick={() => {
                             if (!data.tags?.includes(tag.name)) {
@@ -900,11 +787,11 @@ export const OperationEditor = ({
                   ? code.startsWith("2")
                     ? "bg-green-500/10 text-green-400 border-green-500/20"
                     : code.startsWith("3")
-                    ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                    : code.startsWith("4")
-                    ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
-                    : "bg-red-500/10 text-red-400 border-red-500/20"
-                  : "text-gray-500 hover:text-gray-300 hover:bg-[#2a2d2e]"
+                      ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                      : code.startsWith("4")
+                        ? "bg-orange-500/10 text-orange-400 border-orange-500/20"
+                        : "bg-red-500/10 text-red-400 border-red-500/20"
+                  : "text-gray-500 hover:text-gray-300 hover:bg-[#2a2d2e]",
               )}
             >
               {code}
@@ -941,7 +828,7 @@ export const OperationEditor = ({
                       className={cn(
                         "text-xs text-gray-300 hover:text-white hover:bg-[#3e3e42]",
                         data.responses?.[code] &&
-                          "opacity-50 cursor-not-allowed"
+                          "opacity-50 cursor-not-allowed",
                       )}
                       onClick={() => {
                         const newResponses = { ...(data.responses || {}) };
@@ -1069,7 +956,7 @@ export const OperationEditor = ({
                       <Select
                         value={(() => {
                           const contentTypes = Object.keys(
-                            response.content || {}
+                            response.content || {},
                           );
                           return activeContentType &&
                             contentTypes.includes(activeContentType)
@@ -1265,7 +1152,7 @@ export const OperationEditor = ({
                                 "px-2 py-1 rounded text-xs border flex items-center gap-2 cursor-pointer",
                                 type === currentContentType
                                   ? "bg-[#252526] border-[#3e3e42] text-white"
-                                  : "border-transparent text-gray-500 hover:text-gray-300"
+                                  : "border-transparent text-gray-500 hover:text-gray-300",
                               )}
                               onClick={() => setActiveContentType(type)}
                             >

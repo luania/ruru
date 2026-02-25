@@ -7,8 +7,9 @@ import {
   Search,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { parseOpenAPI } from "../../lib/openapi";
+import { isOpenAPI, parseOpenAPI } from "../../lib/openapi";
 import { cn } from "../../lib/utils";
+import type { ParameterObject } from "openapi3-ts/oas31";
 import { useStore } from "../../store/useStore";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
@@ -25,6 +26,8 @@ interface ReferenceSelectorProps {
     | "requestBodies"
     | "headers"
     | "securitySchemes";
+  /** Filter parameters by 'in' type (only used when type="parameters") */
+  parameterIn?: string;
   trigger?: React.ReactNode;
 }
 
@@ -69,6 +72,7 @@ export const ReferenceSelector = ({
   onChange,
   onDetach,
   type,
+  parameterIn,
   trigger,
 }: ReferenceSelectorProps) => {
   const activeFilePath = useStore((state) => state.activeFilePath);
@@ -85,12 +89,18 @@ export const ReferenceSelector = ({
       }
 
       try {
-        const content: string = await window.ipcRenderer.readFile(
-          activeFilePath
-        );
+        const content: string =
+          await window.ipcRenderer.readFile(activeFilePath);
         const openapi = parseOpenAPI(content);
         if (openapi?.components?.[type]) {
-          setLocalComponents(Object.keys(openapi.components[type]));
+          let names = Object.keys(openapi.components[type]);
+          if (type === "parameters" && parameterIn) {
+            names = names.filter((name) => {
+              const param = openapi.components![type]![name] as ParameterObject;
+              return param?.in === parameterIn;
+            });
+          }
+          setLocalComponents(names);
         } else {
           setLocalComponents([]);
         }
@@ -100,7 +110,7 @@ export const ReferenceSelector = ({
     };
 
     loadLocalComponents();
-  }, [activeFilePath, type, isOpen]);
+  }, [activeFilePath, type, parameterIn, isOpen]);
 
   const [mode, setMode] = useState<"local" | "external">("local");
   const getInitialPath = () => {
@@ -116,6 +126,7 @@ export const ReferenceSelector = ({
   >([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [externalComponents, setExternalComponents] = useState<string[]>([]);
+  const [isPlainSchema, setIsPlainSchema] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [search, setSearch] = useState("");
 
@@ -136,7 +147,7 @@ export const ReferenceSelector = ({
         .readDirectory(currentPath)
         .then(
           (
-            result: Array<{ name: string; isDirectory: boolean; path: string }>
+            result: Array<{ name: string; isDirectory: boolean; path: string }>,
           ) => {
             // Filter for directories and yaml/json files
             const filtered = result.filter(
@@ -144,21 +155,21 @@ export const ReferenceSelector = ({
                 f.isDirectory ||
                 f.name.endsWith(".yaml") ||
                 f.name.endsWith(".yml") ||
-                f.name.endsWith(".json")
+                f.name.endsWith(".json"),
             );
             // Sort directories first
             filtered.sort(
               (
                 a: { name: string; isDirectory: boolean },
-                b: { name: string; isDirectory: boolean }
+                b: { name: string; isDirectory: boolean },
               ) => {
                 if (a.isDirectory === b.isDirectory)
                   return a.name.localeCompare(b.name);
                 return a.isDirectory ? -1 : 1;
-              }
+              },
             );
             setFiles(filtered);
-          }
+          },
         )
         .catch((e: unknown) => {
           console.error("Failed to read directory", e);
@@ -175,13 +186,29 @@ export const ReferenceSelector = ({
     const loadExternalComponents = () => {
       if (!selectedFile) return;
       setIsLoading(true);
+      setIsPlainSchema(false);
       window.ipcRenderer
         .readFile(selectedFile)
         .then((content: string) => {
-          const parsed = parseOpenAPI(content);
-          if (parsed && parsed.components && parsed.components[type]) {
-            setExternalComponents(Object.keys(parsed.components[type] || {}));
+          if (isOpenAPI(content)) {
+            const parsed = parseOpenAPI(content);
+            if (parsed?.components?.[type]) {
+              let names = Object.keys(parsed.components[type] || {});
+              if (type === "parameters" && parameterIn) {
+                names = names.filter((name) => {
+                  const param = parsed.components![type]![
+                    name
+                  ] as ParameterObject;
+                  return param?.in === parameterIn;
+                });
+              }
+              setExternalComponents(names);
+            } else {
+              setExternalComponents([]);
+            }
           } else {
+            // Plain schema YAML file — allow referencing the entire file
+            setIsPlainSchema(true);
             setExternalComponents([]);
           }
         })
@@ -194,18 +221,18 @@ export const ReferenceSelector = ({
         });
     };
     loadExternalComponents();
-  }, [selectedFile, type]);
+  }, [selectedFile, type, parameterIn]);
 
   const filteredLocalComponents = localComponents.filter((c: string) =>
-    c.toLowerCase().includes(search.toLowerCase())
+    c.toLowerCase().includes(search.toLowerCase()),
   );
 
   const filteredExternalComponents = externalComponents.filter((c: string) =>
-    c.toLowerCase().includes(search.toLowerCase())
+    c.toLowerCase().includes(search.toLowerCase()),
   );
 
   const filteredFiles = files.filter((f) =>
-    f.name.toLowerCase().includes(search.toLowerCase())
+    f.name.toLowerCase().includes(search.toLowerCase()),
   );
 
   const handleFileClick = (file: {
@@ -239,7 +266,7 @@ export const ReferenceSelector = ({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 text-xs text-blue-400"
+            className="h-7 max-w-[320px] text-xs text-blue-400"
           >
             {value || "Select Reference"}
           </Button>
@@ -252,7 +279,7 @@ export const ReferenceSelector = ({
               "flex-1 px-4 py-2 text-sm font-medium transition-colors",
               mode === "local"
                 ? "text-white border-b-2 border-blue-500"
-                : "text-gray-400 hover:text-gray-300"
+                : "text-gray-400 hover:text-gray-300",
             )}
             onClick={() => handleModeChange("local")}
           >
@@ -263,7 +290,7 @@ export const ReferenceSelector = ({
               "flex-1 px-4 py-2 text-sm font-medium transition-colors",
               mode === "external"
                 ? "text-white border-b-2 border-blue-500"
-                : "text-gray-400 hover:text-gray-300"
+                : "text-gray-400 hover:text-gray-300",
             )}
             onClick={() => handleModeChange("external")}
           >
@@ -302,7 +329,7 @@ export const ReferenceSelector = ({
                       "w-full text-left px-3 py-2 rounded text-sm flex items-center justify-between group hover:bg-[#2a2d2e]",
                       value === `#/components/${type}/${name}`
                         ? "bg-[#2a2d2e] text-blue-400"
-                        : "text-gray-300"
+                        : "text-gray-300",
                     )}
                     onClick={() => handleSelect(`#/components/${type}/${name}`)}
                   >
@@ -338,6 +365,27 @@ export const ReferenceSelector = ({
                     <div className="text-center py-8 text-gray-500 text-sm">
                       Parsing file...
                     </div>
+                  ) : isPlainSchema ? (
+                    <div className="space-y-2">
+                      <div className="text-xs text-gray-500 px-3 py-1">
+                        This file is a plain schema definition.
+                      </div>
+                      <button
+                        className="w-full text-left px-3 py-2 rounded text-sm text-gray-300 hover:bg-[#2a2d2e] hover:text-white flex items-center gap-2"
+                        onClick={() => {
+                          if (activeFilePath) {
+                            const relPath = getRelativePath(
+                              activeFilePath,
+                              selectedFile,
+                            );
+                            handleSelect(relPath);
+                          }
+                        }}
+                      >
+                        <FileCode size={14} className="text-green-400" />
+                        Use entire file as reference
+                      </button>
+                    </div>
                   ) : filteredExternalComponents.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 text-sm">
                       No {type} found in this file.
@@ -351,10 +399,10 @@ export const ReferenceSelector = ({
                           if (activeFilePath) {
                             const relPath = getRelativePath(
                               activeFilePath,
-                              selectedFile
+                              selectedFile,
                             );
                             handleSelect(
-                              `${relPath}#/components/${type}/${name}`
+                              `${relPath}#/components/${type}/${name}`,
                             );
                           }
                         }}
@@ -375,7 +423,7 @@ export const ReferenceSelector = ({
                         if (currentPath) {
                           const parent = currentPath.substring(
                             0,
-                            currentPath.lastIndexOf("/")
+                            currentPath.lastIndexOf("/"),
                           );
                           setCurrentPath(parent || "/");
                         }

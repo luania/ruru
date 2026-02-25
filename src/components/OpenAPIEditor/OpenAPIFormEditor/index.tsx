@@ -265,6 +265,38 @@ export default function OpenAPIFormEditor() {
     [activeFilePath, saveFile],
   );
 
+  const handlePathRename = useCallback(
+    (oldPath: string, newPath: string) => {
+      if (!docRef.current || !activeFilePath || oldPath === newPath) return;
+
+      // Directly rename the key in the YAML AST to preserve position
+      const pathsNode = docRef.current.getIn(["paths"]);
+      if (pathsNode instanceof YAML.YAMLMap) {
+        const pairIndex = pathsNode.items.findIndex(
+          (pair) =>
+            (pair.key instanceof YAML.Scalar ? pair.key.value : pair.key) ===
+            oldPath,
+        );
+        if (pairIndex >= 0) {
+          const pair = pathsNode.items[pairIndex];
+          if (pair.key instanceof YAML.Scalar) {
+            pair.key.value = newPath;
+          } else {
+            pair.key = new YAML.Scalar(newPath);
+          }
+        }
+      }
+
+      const cloned = docRef.current.clone();
+      docRef.current = cloned;
+      setDoc(cloned);
+      setSelectedPath(newPath);
+
+      saveFile();
+    },
+    [activeFilePath, saveFile],
+  );
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-full text-gray-500">
@@ -509,6 +541,9 @@ export default function OpenAPIFormEditor() {
                 initialMethod={selectedMethod}
                 onChange={(newPathItem) =>
                   handlePathChange(selectedPath, newPathItem)
+                }
+                onPathRename={(newPath) =>
+                  handlePathRename(selectedPath, newPath)
                 }
               />
             )}
